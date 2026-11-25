@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  CATEGORIES, getCategory, productImage, featuredProducts, complementsFor, offerProducts, getPacks,
+  CATEGORIES, getCategory, productImage, featuredProducts, complementsFor, bestSellers, getPacks,
 } from './catalog.js';
 
 // Cache-busting: the stylesheet URL changes whenever its content changes, so a new deploy
@@ -16,12 +16,13 @@ const CSS_VERSION = createHash('sha256')
 export const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-const priceFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+// 'always' so 1698 reads "1.698,00 €" (es-ES skips the separator on 4-digit numbers by default).
+const priceFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
 export const formatPrice = (n) => priceFormat.format(n);
 
 function header(activeCategory, query = '') {
   const current = (key) => (key === activeCategory ? ' aria-current="page"' : '');
-  const links = `<li><a class="nav-highlight" href="/ofertas"${current('ofertas')}>Ofertas</a></li>`
+  const links = `<li><a class="nav-highlight" href="/mas-vendidos"${current('ofertas')}>Más vendidos</a></li>`
     + `<li><a class="nav-highlight" href="/packs"${current('packs')}>Packs</a></li>`
     + CATEGORIES.map((c) => `<li><a href="/categoria/${c.slug}"${current(c.slug)}>${c.name}</a></li>`).join('');
   return `<header class="site-header">
@@ -69,21 +70,15 @@ ${footer}
 </html>`;
 }
 
-const isOffer = (p) => p.old_price > p.price;
-const savingPct = (p) => Math.round((1 - p.price / p.old_price) * 100);
-
-function priceHtml(p, cls = 'card-price') {
-  return isOffer(p)
-    ? `<span class="${cls}"><span class="price-now">${formatPrice(p.price)}</span> <del>${formatPrice(p.old_price)}</del></span>`
-    : `<span class="${cls}">${formatPrice(p.price)}</span>`;
-}
+// No reference ("before") prices: the supplier data has none, and an invented one is a fake discount.
+const priceHtml = (p, cls = 'card-price') => `<span class="${cls}">${formatPrice(p.price)}</span>`;
 
 function productCard(p) {
   return `<li class="card">
 <a href="/producto/${encodeURIComponent(p.sku)}">
-<span class="card-media"><img src="${productImage(p)}" alt="${escapeHtml(p.name)}" width="400" height="300" loading="lazy">${isOffer(p) ? `<span class="badge">-${savingPct(p)} %</span>` : ''}</span>
+<span class="card-media"><img src="${productImage(p)}" alt="${escapeHtml(p.name)}" width="400" height="300" loading="lazy"></span>
 <span class="card-name">${escapeHtml(p.name)}</span>
-<span class="card-meta">${escapeHtml(getCategory(p.category)?.name ?? '')} · ${p.width_cm} cm</span>
+<span class="card-meta">${escapeHtml(getCategory(p.category)?.name ?? '')} · ${p.width_cm} cm${p.seats ? ` · ${p.seats} ${p.seats === 1 ? 'plaza' : 'plazas'}` : ''} · ${escapeHtml(p.color)} · ${escapeHtml(p.material)}</span>
 ${priceHtml(p)}
 </a>
 </li>`;
@@ -122,21 +117,22 @@ export function renderHome() {
 <p class="eyebrow">Nueva colección</p>
 <h1>Muebles de diseño para vivir mejor</h1>
 <p>Piezas atemporales para el salón, el comedor y el dormitorio. Compra como invitado en pocos pasos.</p>
-<a class="btn" href="/categoria/sofas">Ver sofás</a>
+<a class="btn" href="/categoria/sofa">Ver sofás</a>
 </div>
 </section>
 <ul class="usp container">
 <li><strong>Sin registro</strong> Compra como invitado</li>
 <li><strong>Precios claros</strong> IVA incluido en todo</li>
 <li><strong>Pago en un clic</strong> Sin datos de tarjeta</li>
+<li><strong>Montaje gratis</strong> En pedidos desde 1.500 €</li>
 </ul>
 <section class="container section">
 <h2 class="section-title">Compra por categoría</h2>
 <ul class="tiles">${tiles}</ul>
 </section>
 <section class="container section">
-<div class="section-head"><h2 class="section-title">Ofertas</h2><a href="/ofertas">Ver todas las ofertas</a></div>
-${productGrid(offerProducts().slice(0, 4))}
+<div class="section-head"><h2 class="section-title">Más vendidos</h2><a href="/mas-vendidos">Ver los más vendidos</a></div>
+${productGrid(bestSellers(4))}
 </section>
 <section class="container section">
 <div class="section-head"><h2 class="section-title">Packs para amueblar de una vez</h2><a href="/packs">Ver todos los packs</a></div>
@@ -172,16 +168,16 @@ ${products.length ? productGrid(products) : '<p>No hay productos en esta categor
 }
 
 export function renderOffers() {
-  const offers = offerProducts();
+  const top = bestSellers(12);
   return layout({
-    title: 'Ofertas en muebles y decoración | DevoShop',
-    description: 'Sofás, sillones, iluminación y textil a precio rebajado. Precios con IVA incluido y compra como invitado.',
+    title: 'Los muebles más vendidos | DevoShop',
+    description: 'Los sofás, camas, mesas, lámparas y textiles que más compran nuestros clientes. Precios con IVA incluido.',
     activeCategory: 'ofertas',
     body: `<div class="container section">
-<nav class="breadcrumb" aria-label="Ruta"><a href="/">Inicio</a> / <span>Ofertas</span></nav>
-<h1 class="page-title">Ofertas</h1>
-<p class="muted">${offers.length} productos rebajados. El precio rebajado es el que pagas, IVA incluido.</p>
-${productGrid(offers)}
+<nav class="breadcrumb" aria-label="Ruta"><a href="/">Inicio</a> / <span>Más vendidos</span></nav>
+<h1 class="page-title">Más vendidos</h1>
+<p class="muted">Los ${top.length} productos que más unidades han vendido. Precios con IVA incluido.</p>
+${productGrid(top)}
 </div>`,
   });
 }
@@ -219,7 +215,7 @@ ${products.length
 export function renderProduct(p) {
   const category = getCategory(p.category);
   const specs = [
-    ['Ancho', `${p.width_cm} cm`],
+    ['Medidas', `${p.width_cm} x ${p.depth_cm} x ${p.height_cm} cm (ancho x fondo x alto)`],
     p.seats ? ['Plazas', p.seats] : null,
     ['Color', p.color],
     ['Material', p.material],
@@ -237,22 +233,132 @@ export function renderProduct(p) {
 <img class="product-img" src="${productImage(p)}" alt="${escapeHtml(p.name)}" width="800" height="600">
 <div class="product-info">
 <h1 class="product-name">${escapeHtml(p.name)}</h1>
-<p class="product-price">${isOffer(p) ? `<span class="price-now">${formatPrice(p.price)}</span> <del>${formatPrice(p.old_price)}</del> <span class="badge badge-inline">-${savingPct(p)} %</span>` : formatPrice(p.price)} <span class="muted">IVA incluido</span></p>
+<p class="product-price">${formatPrice(p.price)} <span class="muted">IVA incluido</span></p>
 <form class="buy" action="/carrito/anadir" method="post">
 <input type="hidden" name="sku" value="${escapeHtml(p.sku)}">
 <label for="cantidad">Cantidad</label>
 <select id="cantidad" name="cantidad">${options}</select>
-<button class="btn btn-block" type="submit">Añadir al carrito</button>
+<button class="btn btn-block" type="submit">Añadir al carrito, ${formatPrice(p.price)}</button>
 </form>
+${complementForms(complements)}
 <p>${escapeHtml(p.description)}</p>
 <dl class="specs">${specs}</dl>
 </div>
 </div>
 </div>
-${complements.length ? `<section class="container section">
-<h2 class="section-title">Completa tu espacio</h2>
-${productGrid(complements)}
-</section>` : ''}`,
+<ul class="usp container">
+<li><strong>Envío gratis</strong> En pedidos desde 500 €</li>
+<li><strong>Montaje gratis</strong> En pedidos desde 1.500 €</li>
+<li><strong>Garantía</strong> 3 años en muebles, 10 en colchones</li>
+<li><strong>Devolución</strong> 30 días</li>
+</ul>`,
+  });
+}
+
+/** Cross-sell right under the add-to-cart button: one-click add, with the real share from the sales history. */
+function complementForms(items, heading = 'Se compra junto con') {
+  if (!items.length) return '';
+  const li = items.map((c) => `<li class="complement">
+<img src="${productImage(c)}" alt="${escapeHtml(c.name)}" width="80" height="60" loading="lazy">
+<span><a href="/producto/${encodeURIComponent(c.sku)}">${escapeHtml(c.name)}</a> · ${formatPrice(c.price)}${c.share ? ` <span class="muted">(${c.share} % de los clientes lo añaden)</span>` : ''}</span>
+<form action="/carrito/anadir" method="post"><input type="hidden" name="sku" value="${escapeHtml(c.sku)}"><input type="hidden" name="cantidad" value="1"><button class="btn btn-outline" type="submit">Añadir ${escapeHtml(c.name)}, ${formatPrice(c.price)}</button></form>
+</li>`).join('');
+  return `<section class="complements" aria-label="${heading}"><h2 class="section-title">${heading}</h2><ul class="complement-list">${li}</ul></section>`;
+}
+
+const MONTAJE_GRATIS = 1500;
+const ENVIO_GRATIS = 500;
+
+function cartLines(r, editable) {
+  return `<ul class="cart-lines">${r.items.map((l) => `<li class="cart-line" data-linea="${escapeHtml(l.product.sku)}" data-cantidad="${l.quantity}">
+<img src="${productImage(l.product)}" alt="${escapeHtml(l.product.name)}" width="80" height="60" loading="lazy">
+<span class="cart-name"><a href="/producto/${encodeURIComponent(l.product.sku)}">${escapeHtml(l.product.name)}</a><br><span class="muted">${l.quantity} × ${formatPrice(l.product.price)}</span></span>
+<strong>${formatPrice(Math.round(l.product.price * 100) * l.quantity / 100)}</strong>
+${editable ? `<form action="/carrito/cantidad" method="post" class="qty"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}">
+<label for="q-${escapeHtml(l.product.sku)}">Cantidad de ${escapeHtml(l.product.name)}</label>
+<input id="q-${escapeHtml(l.product.sku)}" name="cantidad" type="number" min="0" max="20" value="${l.quantity}">
+<button type="submit">Actualizar</button></form>
+<form action="/carrito/cantidad" method="post"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}"><input type="hidden" name="cantidad" value="0"><button type="submit">Quitar ${escapeHtml(l.product.name)}</button></form>` : ''}
+</li>`).join('')}</ul>
+<p class="cart-total">Total: <strong>${formatPrice(r.total)}</strong> <span class="muted">IVA incluido</span></p>`;
+}
+
+function perks(total) {
+  const out = [];
+  out.push(total >= ENVIO_GRATIS ? 'Tu pedido tiene envío gratis.' : `Envío: 49 €. Gratis a partir de ${formatPrice(ENVIO_GRATIS)} (te faltan ${formatPrice((Math.round(ENVIO_GRATIS * 100) - Math.round(total * 100)) / 100)}).`);
+  out.push(total >= MONTAJE_GRATIS ? 'Tu pedido tiene montaje a domicilio gratis.' : `Montaje a domicilio gratis a partir de ${formatPrice(MONTAJE_GRATIS)} (te faltan ${formatPrice((Math.round(MONTAJE_GRATIS * 100) - Math.round(total * 100)) / 100)}).`);
+  return `<ul class="perks">${out.map((t) => `<li>${t}</li>`).join('')}</ul>`;
+}
+
+export function renderCart(r) {
+  const cross = r.items.length
+    ? complementsFor(r.items[0].product, 6).filter((c) => !r.items.some((l) => l.product.sku === c.sku)).slice(0, 3)
+    : [];
+  return layout({
+    title: 'Tu carrito de compra | DevoShop',
+    description: 'Revisa los productos de tu carrito y finaliza la compra como invitado, sin registro.',
+    body: `<div class="container section">
+<h1 class="page-title">Tu carrito</h1>
+${r.items.length ? `<p><a class="btn" href="/checkout">Finalizar compra como invitado</a></p>
+${cartLines(r, true)}
+${perks(r.total)}
+<p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></p>
+${complementForms(cross, 'Completa tu pedido')}`
+    : '<p>Tu carrito está vacío.</p><p><a class="btn" href="/">Seguir comprando</a></p>'}
+</div>`,
+  });
+}
+
+const field = (id, label, type, value, error, autocomplete) => `<p class="field">
+<label for="${id}">${label}</label>
+<input id="${id}" name="${id}" type="${type}" value="${escapeHtml(value ?? '')}" autocomplete="${autocomplete}" required${error ? ` aria-invalid="true" aria-describedby="${id}-error"` : ''}>
+${error ? `<span class="field-error" id="${id}-error">${escapeHtml(error)}</span>` : ''}
+</p>`;
+
+export function renderCheckout(r, orderId, form, errores, aviso = '') {
+  return layout({
+    title: 'Finalizar compra como invitado | DevoShop',
+    description: 'Escribe tus datos de envío y confirma el pedido. Pago simulado, sin datos de tarjeta.',
+    body: `<div class="container section">
+<h1 class="page-title">Finalizar compra</h1>
+${aviso ? `<p class="alert" role="alert">${aviso}</p>` : ''}
+${cartLines(r, false)}
+${perks(r.total)}
+<form class="checkout" action="/checkout" method="post">
+<input type="hidden" name="order_id" value="${escapeHtml(orderId)}">
+${field('nombre', 'Nombre y apellidos', 'text', form.nombre, errores.nombre, 'name')}
+${field('email', 'Email', 'email', form.email, errores.email, 'email')}
+${field('direccion', 'Dirección de envío', 'text', form.direccion, errores.direccion, 'street-address')}
+<p class="muted">Pago simulado: no se piden datos de tarjeta. Al pulsar el botón, el pedido queda confirmado.</p>
+<button class="btn btn-block" type="submit">Pagar ${formatPrice(r.total)} (pago simulado)</button>
+</form>
+</div>`,
+  });
+}
+
+export const renderOrderError = (r, orderId, form) =>
+  renderCheckout(r, orderId, form, {}, 'No hemos podido registrar el pedido. Tus datos siguen aquí: pulsa «Pagar» otra vez para reintentarlo.');
+
+export function renderEmptyCheckout() {
+  return layout({
+    title: 'Finalizar compra como invitado | DevoShop',
+    description: 'Tu carrito está vacío. Añade productos para finalizar la compra como invitado.',
+    body: `<div class="container section"><h1 class="page-title">Finalizar compra</h1>
+<p>Tu carrito está vacío.</p><p><a class="btn" href="/">Seguir comprando</a></p></div>`,
+  });
+}
+
+export function renderConfirmation(recibo) {
+  return layout({
+    title: 'Pedido confirmado | DevoShop tienda de muebles',
+    description: 'Tu pedido en DevoShop está confirmado. Gracias por tu compra.',
+    body: `<div class="container section">
+<h1 class="page-title">Pedido confirmado</h1>
+<p>Gracias, ${escapeHtml(recibo.name)}. Tu número de pedido es <strong>${escapeHtml(recibo.id)}</strong>.</p>
+<ul class="cart-lines">${recibo.items.map((i) => `<li class="cart-line"><span class="cart-name">${escapeHtml(i.name)}<br><span class="muted">${i.quantity} × ${formatPrice(i.unit_price)}</span></span></li>`).join('')}</ul>
+<p class="cart-total">Total pagado: <strong>${formatPrice(recibo.total)}</strong> <span class="muted">IVA incluido</span></p>
+<p><a class="btn" href="/">Volver a la tienda</a></p>
+</div>`,
   });
 }
 
