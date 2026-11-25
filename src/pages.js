@@ -319,8 +319,8 @@ function cartLines(r, editable) {
 <strong>${formatPrice(Math.round(l.product.price * 100) * l.quantity / 100)}</strong>
 ${editable ? `<form action="/carrito/cantidad" method="post" class="qty"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}">
 <label for="q-${escapeHtml(l.product.sku)}">Cantidad de ${escapeHtml(l.product.name)}</label>
-<input id="q-${escapeHtml(l.product.sku)}" name="cantidad" type="number" min="0" max="20" value="${l.quantity}">
-<button type="submit">Actualizar</button></form>
+<select id="q-${escapeHtml(l.product.sku)}" name="cantidad" data-autosubmit>${Array.from({ length: 20 }, (_, i) => `<option value="${i + 1}"${i + 1 === l.quantity ? ' selected' : ''}>${i + 1}</option>`).join('')}</select>
+<noscript><button type="submit">Actualizar</button></noscript></form>
 <form action="/carrito/cantidad" method="post"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}"><input type="hidden" name="cantidad" value="0"><button type="submit">Quitar ${escapeHtml(l.product.name)}</button></form>` : ''}
 </li>`).join('')}</ul>
 <p class="cart-total">Total: <strong>${formatPrice(r.total)}</strong> <span class="muted">IVA incluido</span></p>`;
@@ -368,7 +368,8 @@ ${r.items.length ? `<div class="cart-top"><p><strong>Total: ${formatPrice(r.tota
 ${cartLines(r, true)}
 ${perks(r.total)}
 <p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></p>
-${complementForms(cross, 'Completa tu pedido')}`
+${complementForms(cross, 'Completa tu pedido')}
+<script src="/static/carrito.js" defer></script>`
     : '<p>Tu carrito está vacío.</p><p><a class="btn" href="/">Seguir comprando</a></p>'}
 </div>`,
   });
