@@ -7,7 +7,7 @@
 //  - Prices include VAT (21 %), in euros with two decimals.
 //  - Measurements are in centimetres.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -355,3 +355,42 @@ console.log(`init.sql: ${catalog.productos.length} productos (${merged.length} e
   `${catalog.descartados.length} descatalogados excluidos, ${historial.length} líneas de historial.`);
 for (const p of merged) console.log(`  merged ${p.ids_origen.join(' + ')} -> ${p.sku} (${p.precio.toFixed(2)} €)`);
 console.log(`  excluded: ${catalog.descartados.map((d) => d.join('+')).join(', ')}`);
+
+// ---------- JSON for the app (served from memory, no DB on the hot path) ----------
+// src/data/catalogo.json: clean products; src/data/comprado-junto.json: for each sku, the
+// skus bought in the same past order, with how many orders and the % of that sku's orders.
+{
+  const appDir = join(here, '..', 'src', 'data');
+  mkdirSync(appDir, { recursive: true });
+  const productos = catalog.productos.map((p) => ({
+    sku: p.sku, ids_origen: p.ids_origen, nombre: p.nombre, categoria: p.categoria, precio: p.precio,
+    plazas: p.plazas, ancho_cm: p.ancho, fondo_cm: p.fondo, alto_cm: p.alto,
+    color: p.color, material: p.material, descripcion: p.descripcion,
+  }));
+  writeFileSync(join(appDir, 'catalogo.json'), JSON.stringify({ productos }, null, 1) + '\n');
+
+  const skuByOrigen = new Map(catalog.productos.flatMap((p) => p.ids_origen.map((id) => [id, p.sku])));
+  const orders = new Map();
+  for (const h of historial) {
+    const sku = skuByOrigen.get(h.id_origen);
+    if (!sku) continue;
+    if (!orders.has(h.pedido)) orders.set(h.pedido, new Set());
+    orders.get(h.pedido).add(sku);
+  }
+  const withSku = new Map();
+  const pairs = new Map();
+  for (const skus of orders.values()) {
+    for (const a of skus) {
+      withSku.set(a, (withSku.get(a) ?? 0) + 1);
+      for (const b of skus) if (a !== b) pairs.set(`${a}|${b}`, (pairs.get(`${a}|${b}`) ?? 0) + 1);
+    }
+  }
+  const junto = {};
+  for (const [key, n] of pairs) {
+    const [a, b] = key.split('|');
+    (junto[a] ??= []).push({ sku: b, pedidos: n, pct: Math.round((n / withSku.get(a)) * 100) });
+  }
+  for (const list of Object.values(junto)) list.sort((x, y) => y.pedidos - x.pedidos || x.sku.localeCompare(y.sku));
+  writeFileSync(join(appDir, 'comprado-junto.json'), JSON.stringify(junto) + '\n');
+  console.log(`src/data: ${productos.length} productos, ${Object.keys(junto).length} con "comprado junto"`);
+}

@@ -1,0 +1,865 @@
+{
+ "productos": [
+  {
+   "sku": "alfombrilla-protectora-para-silla",
+   "ids_origen": [
+    "B-70916"
+   ],
+   "nombre": "Alfombrilla protectora para silla",
+   "categoria": "accesorio",
+   "precio": 29,
+   "plazas": null,
+   "ancho_cm": 120,
+   "fondo_cm": 90,
+   "alto_cm": 1,
+   "color": "natural",
+   "material": "melamina",
+   "descripcion": "Alfombrilla protectora para silla, acabado en melamina color natural."
+  },
+  {
+   "sku": "reposapies-ergonomico",
+   "ids_origen": [
+    "B-50794"
+   ],
+   "nombre": "Reposapiés ergonómico",
+   "categoria": "accesorio",
+   "precio": 25,
+   "plazas": null,
+   "ancho_cm": 45,
+   "fondo_cm": 35,
+   "alto_cm": 12,
+   "color": "negro",
+   "material": "metal",
+   "descripcion": "Reposapiés ergonómico, acabado en metal color negro."
+  },
+  {
+   "sku": "soporte-de-monitor-de-madera",
+   "ids_origen": [
+    "B-67452"
+   ],
+   "nombre": "Soporte de monitor de madera",
+   "categoria": "accesorio",
+   "precio": 39,
+   "plazas": null,
+   "ancho_cm": 60,
+   "fondo_cm": 22,
+   "alto_cm": 10,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Soporte de monitor de madera, acabado en madera color roble."
+  },
+  {
+   "sku": "aparador-3-puertas",
+   "ids_origen": [
+    "A-3551"
+   ],
+   "nombre": "Aparador 3 puertas",
+   "categoria": "almacenaje",
+   "precio": 310,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 40,
+   "alto_cm": 80,
+   "color": "nogal",
+   "material": "madera",
+   "descripcion": null
+  },
+  {
+   "sku": "armario-2-puertas-correderas",
+   "ids_origen": [
+    "A-6662"
+   ],
+   "nombre": "Armario 2 puertas correderas",
+   "categoria": "almacenaje",
+   "precio": 340,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 60,
+   "alto_cm": 200,
+   "color": "blanco",
+   "material": "melamina",
+   "descripcion": null
+  },
+  {
+   "sku": "cajonera-con-ruedas-3-cajones",
+   "ids_origen": [
+    "A-4350"
+   ],
+   "nombre": "Cajonera con ruedas 3 cajones",
+   "categoria": "almacenaje",
+   "precio": 79,
+   "plazas": null,
+   "ancho_cm": 40,
+   "fondo_cm": 50,
+   "alto_cm": 60,
+   "color": "blanco",
+   "material": "metal",
+   "descripcion": null
+  },
+  {
+   "sku": "estanteria-libreria-5-baldas",
+   "ids_origen": [
+    "B-40144"
+   ],
+   "nombre": "Estantería librería 5 baldas",
+   "categoria": "almacenaje",
+   "precio": 95,
+   "plazas": null,
+   "ancho_cm": 80,
+   "fondo_cm": 30,
+   "alto_cm": 180,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Estantería librería 5 baldas, acabado en madera color roble."
+  },
+  {
+   "sku": "mesilla-de-noche-1-cajon",
+   "ids_origen": [
+    "B-23736"
+   ],
+   "nombre": "Mesilla de noche 1 cajón",
+   "categoria": "almacenaje",
+   "precio": 55,
+   "plazas": null,
+   "ancho_cm": 45,
+   "fondo_cm": 35,
+   "alto_cm": 50,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Mesilla de noche 1 cajón, acabado en madera color roble. Medidas: 45 x 35 x 50 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "cama-brisa-150x200-tapizada",
+   "ids_origen": [
+    "B-36878"
+   ],
+   "nombre": "Cama Brisa 150x200 tapizada",
+   "categoria": "cama",
+   "precio": 610,
+   "plazas": null,
+   "ancho_cm": 165,
+   "fondo_cm": 210,
+   "alto_cm": 120,
+   "color": "gris",
+   "material": "tela",
+   "descripcion": "Cama Brisa 150x200 tapizada, acabado en tela color gris. Medidas: 165 x 210 x 120 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "cama-luna-150x190",
+   "ids_origen": [
+    "A-4961",
+    "B-57833"
+   ],
+   "nombre": "Cama Luna 150x190",
+   "categoria": "cama",
+   "precio": 380,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 200,
+   "alto_cm": 100,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Cama Luna 150x190, acabado en madera color roble."
+  },
+  {
+   "sku": "cama-nube-90x190",
+   "ids_origen": [
+    "B-32440"
+   ],
+   "nombre": "Cama Nube 90x190",
+   "categoria": "cama",
+   "precio": 210,
+   "plazas": null,
+   "ancho_cm": 100,
+   "fondo_cm": 200,
+   "alto_cm": 90,
+   "color": "blanco",
+   "material": "madera",
+   "descripcion": "Cama Nube 90x190, acabado en madera color blanco."
+  },
+  {
+   "sku": "cama-roca-135x190",
+   "ids_origen": [
+    "A-8465",
+    "B-82382"
+   ],
+   "nombre": "Cama Roca 135x190",
+   "categoria": "cama",
+   "precio": 340,
+   "plazas": null,
+   "ancho_cm": 145,
+   "fondo_cm": 200,
+   "alto_cm": 95,
+   "color": "nogal",
+   "material": "madera",
+   "descripcion": "Cama Roca 135x190, acabado en madera color nogal."
+  },
+  {
+   "sku": "cama-sol-150x190-con-canape",
+   "ids_origen": [
+    "A-1369"
+   ],
+   "nombre": "Cama sol 150x190 con canapé",
+   "categoria": "cama",
+   "precio": 520,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 200,
+   "alto_cm": 40,
+   "color": "blanco",
+   "material": "melamina",
+   "descripcion": null
+  },
+  {
+   "sku": "colchon-basic-90x190",
+   "ids_origen": [
+    "A-9913"
+   ],
+   "nombre": "Colchón Basic 90x190",
+   "categoria": "colchon",
+   "precio": 149,
+   "plazas": null,
+   "ancho_cm": 90,
+   "fondo_cm": 190,
+   "alto_cm": 20,
+   "color": "blanco",
+   "material": "espuma",
+   "descripcion": null
+  },
+  {
+   "sku": "colchon-confort-150x200",
+   "ids_origen": [
+    "A-9287"
+   ],
+   "nombre": "Colchón Confort 150x200",
+   "categoria": "colchon",
+   "precio": 389,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 200,
+   "alto_cm": 27,
+   "color": "blanco",
+   "material": "espuma",
+   "descripcion": null
+  },
+  {
+   "sku": "colchon-descanso-150x190",
+   "ids_origen": [
+    "A-7254"
+   ],
+   "nombre": "Colchón Descanso 150x190",
+   "categoria": "colchon",
+   "precio": 299,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 190,
+   "alto_cm": 25,
+   "color": "blanco",
+   "material": "espuma",
+   "descripcion": null
+  },
+  {
+   "sku": "colchon-firme-135x190",
+   "ids_origen": [
+    "B-22183"
+   ],
+   "nombre": "Colchón Firme 135x190",
+   "categoria": "colchon",
+   "precio": 259,
+   "plazas": null,
+   "ancho_cm": 135,
+   "fondo_cm": 190,
+   "alto_cm": 24,
+   "color": "blanco",
+   "material": "muelles",
+   "descripcion": "Colchón Firme 135x190, acabado en muelles ensacados color blanco. Medidas: 135 x 190 x 24 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "colchon-premium-150x190-de-muelles-ensacados",
+   "ids_origen": [
+    "B-98516"
+   ],
+   "nombre": "Colchón Premium 150x190 de muelles ensacados",
+   "categoria": "colchon",
+   "precio": 549,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 190,
+   "alto_cm": 30,
+   "color": "blanco",
+   "material": "muelles",
+   "descripcion": "Colchón Premium 150x190 de muelles ensacados, acabado en muelles ensacados color blanco."
+  },
+  {
+   "sku": "escritorio-compacto-100-cm",
+   "ids_origen": [
+    "A-5784"
+   ],
+   "nombre": "Escritorio compacto 100 cm",
+   "categoria": "escritorio",
+   "precio": 99,
+   "plazas": null,
+   "ancho_cm": 100,
+   "fondo_cm": 50,
+   "alto_cm": 75,
+   "color": "roble",
+   "material": "melamina",
+   "descripcion": null
+  },
+  {
+   "sku": "escritorio-de-esquina-150-cm",
+   "ids_origen": [
+    "B-84838"
+   ],
+   "nombre": "Escritorio de esquina 150 cm",
+   "categoria": "escritorio",
+   "precio": 219,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 120,
+   "alto_cm": 75,
+   "color": "nogal",
+   "material": "madera",
+   "descripcion": "Escritorio de esquina 150 cm, acabado en madera color nogal."
+  },
+  {
+   "sku": "escritorio-elevable-electrico-160-cm",
+   "ids_origen": [
+    "A-2229",
+    "B-94536"
+   ],
+   "nombre": "Escritorio elevable eléctrico 160 cm",
+   "categoria": "escritorio",
+   "precio": 429,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 80,
+   "alto_cm": 120,
+   "color": "negro",
+   "material": "metal",
+   "descripcion": "Escritorio elevable eléctrico 160 cm, acabado en metal color negro. Medidas: 160 x 80 x 120 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "escritorio-trabajo-140-cm",
+   "ids_origen": [
+    "A-2368"
+   ],
+   "nombre": "Escritorio Trabajo 140 cm",
+   "categoria": "escritorio",
+   "precio": 160,
+   "plazas": null,
+   "ancho_cm": 140,
+   "fondo_cm": 60,
+   "alto_cm": 75,
+   "color": "blanco",
+   "material": "melamina",
+   "descripcion": null
+  },
+  {
+   "sku": "flexo-led-regulable",
+   "ids_origen": [
+    "B-85581"
+   ],
+   "nombre": "Flexo LED regulable",
+   "categoria": "iluminacion",
+   "precio": 35,
+   "plazas": null,
+   "ancho_cm": 15,
+   "fondo_cm": 15,
+   "alto_cm": 45,
+   "color": "blanco",
+   "material": "metal",
+   "descripcion": "Flexo LED regulable, acabado en metal color blanco."
+  },
+  {
+   "sku": "lampara-de-mesilla-ceramica",
+   "ids_origen": [
+    "A-5441",
+    "B-30739"
+   ],
+   "nombre": "Lámpara de mesilla Cerámica",
+   "categoria": "iluminacion",
+   "precio": 29,
+   "plazas": null,
+   "ancho_cm": 20,
+   "fondo_cm": 20,
+   "alto_cm": 35,
+   "color": "blanco",
+   "material": "ceramica",
+   "descripcion": "Lámpara de mesilla Cerámica, acabado en ceramica color blanco. Medidas: 20 x 20 x 35 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "lampara-de-pie-arco",
+   "ids_origen": [
+    "B-13338"
+   ],
+   "nombre": "Lámpara de pie Arco",
+   "categoria": "iluminacion",
+   "precio": 89,
+   "plazas": null,
+   "ancho_cm": 40,
+   "fondo_cm": 40,
+   "alto_cm": 180,
+   "color": "negro",
+   "material": "metal",
+   "descripcion": "Lámpara de pie Arco, acabado en metal color negro."
+  },
+  {
+   "sku": "lampara-de-techo-trenzada",
+   "ids_origen": [
+    "A-9295"
+   ],
+   "nombre": "Lámpara de techo Trenzada",
+   "categoria": "iluminacion",
+   "precio": 59,
+   "plazas": null,
+   "ancho_cm": 50,
+   "fondo_cm": 50,
+   "alto_cm": 30,
+   "color": "natural",
+   "material": "lino",
+   "descripcion": null
+  },
+  {
+   "sku": "mesa-de-cocina-sil-plegable",
+   "ids_origen": [
+    "A-4669",
+    "B-84789"
+   ],
+   "nombre": "Mesa de cocina Sil plegable",
+   "categoria": "mesa",
+   "precio": 129,
+   "plazas": null,
+   "ancho_cm": 80,
+   "fondo_cm": 60,
+   "alto_cm": 75,
+   "color": "blanco",
+   "material": "metal",
+   "descripcion": "Mesa de cocina Sil plegable, acabado en metal color blanco."
+  },
+  {
+   "sku": "mesa-de-comedor-duero-redonda",
+   "ids_origen": [
+    "A-2964",
+    "B-52063"
+   ],
+   "nombre": "Mesa de comedor Duero redonda",
+   "categoria": "mesa",
+   "precio": 360,
+   "plazas": null,
+   "ancho_cm": 110,
+   "fondo_cm": 110,
+   "alto_cm": 75,
+   "color": "nogal",
+   "material": "madera",
+   "descripcion": "Mesa de comedor Duero redonda, acabado en madera color nogal."
+  },
+  {
+   "sku": "mesa-de-comedor-ebro-extensible",
+   "ids_origen": [
+    "B-20825"
+   ],
+   "nombre": "Mesa de comedor Ebro extensible",
+   "categoria": "mesa",
+   "precio": 420,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 90,
+   "alto_cm": 76,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Mesa de comedor Ebro extensible, acabado en madera color roble."
+  },
+  {
+   "sku": "mesa-de-comedor-tajo",
+   "ids_origen": [
+    "A-5805"
+   ],
+   "nombre": "Mesa de comedor tajo",
+   "categoria": "mesa",
+   "precio": 290,
+   "plazas": null,
+   "ancho_cm": 140,
+   "fondo_cm": 80,
+   "alto_cm": 75,
+   "color": "blanco",
+   "material": "melamina",
+   "descripcion": null
+  },
+  {
+   "sku": "pack-2-sillas-industrial",
+   "ids_origen": [
+    "A-4280"
+   ],
+   "nombre": "Pack 2 sillas Industrial",
+   "categoria": "silla",
+   "precio": 99,
+   "plazas": null,
+   "ancho_cm": 42,
+   "fondo_cm": 48,
+   "alto_cm": 80,
+   "color": "negro",
+   "material": "metal",
+   "descripcion": null
+  },
+  {
+   "sku": "pack-4-sillas-de-comedor-arena",
+   "ids_origen": [
+    "A-6692",
+    "B-49554"
+   ],
+   "nombre": "Pack 4 sillas de comedor Arena",
+   "categoria": "silla",
+   "precio": 180,
+   "plazas": null,
+   "ancho_cm": 45,
+   "fondo_cm": 52,
+   "alto_cm": 82,
+   "color": "beige",
+   "material": "tela",
+   "descripcion": "Pack 4 sillas de comedor Arena, acabado en tela color beige."
+  },
+  {
+   "sku": "pack-4-sillas-de-comedor-roble",
+   "ids_origen": [
+    "B-28073"
+   ],
+   "nombre": "Pack 4 sillas de comedor Roble",
+   "categoria": "silla",
+   "precio": 240,
+   "plazas": null,
+   "ancho_cm": 44,
+   "fondo_cm": 50,
+   "alto_cm": 80,
+   "color": "roble",
+   "material": "madera",
+   "descripcion": "Pack 4 sillas de comedor Roble, acabado en madera color roble."
+  },
+  {
+   "sku": "pack-6-sillas-de-comedor-nogal",
+   "ids_origen": [
+    "A-9750",
+    "B-90466"
+   ],
+   "nombre": "Pack 6 sillas de comedor Nogal",
+   "categoria": "silla",
+   "precio": 390,
+   "plazas": null,
+   "ancho_cm": 45,
+   "fondo_cm": 50,
+   "alto_cm": 82,
+   "color": "nogal",
+   "material": "madera",
+   "descripcion": "Pack 6 sillas de comedor Nogal, acabado en madera color nogal. Medidas: 45 x 50 x 82 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "silla-de-oficina-basic",
+   "ids_origen": [
+    "A-3028",
+    "B-84380"
+   ],
+   "nombre": "Silla de oficina Basic",
+   "categoria": "silla_oficina",
+   "precio": 69,
+   "plazas": null,
+   "ancho_cm": 58,
+   "fondo_cm": 56,
+   "alto_cm": 95,
+   "color": "negro",
+   "material": "tela",
+   "descripcion": "Silla de oficina Basic, acabado en tela color negro."
+  },
+  {
+   "sku": "silla-de-oficina-ergonomica-de-malla",
+   "ids_origen": [
+    "B-60749"
+   ],
+   "nombre": "Silla de oficina ergonómica de malla",
+   "categoria": "silla_oficina",
+   "precio": 129,
+   "plazas": null,
+   "ancho_cm": 62,
+   "fondo_cm": 60,
+   "alto_cm": 110,
+   "color": "negro",
+   "material": "malla",
+   "descripcion": "Silla de oficina ergonómica de malla, acabado en malla color negro."
+  },
+  {
+   "sku": "silla-de-oficina-pro-con-reposacabezas",
+   "ids_origen": [
+    "B-65328"
+   ],
+   "nombre": "Silla de oficina Pro con reposacabezas",
+   "categoria": "silla_oficina",
+   "precio": 249,
+   "plazas": null,
+   "ancho_cm": 66,
+   "fondo_cm": 64,
+   "alto_cm": 125,
+   "color": "gris",
+   "material": "malla",
+   "descripcion": "Silla de oficina Pro con reposacabezas, acabado en malla color gris."
+  },
+  {
+   "sku": "sillon-de-direccion-ejecutivo",
+   "ids_origen": [
+    "A-1971"
+   ],
+   "nombre": "Sillón de dirección Ejecutivo",
+   "categoria": "silla_oficina",
+   "precio": 319,
+   "plazas": null,
+   "ancho_cm": 68,
+   "fondo_cm": 70,
+   "alto_cm": 120,
+   "color": "marron",
+   "material": "piel",
+   "descripcion": null
+  },
+  {
+   "sku": "sillon-viena",
+   "ids_origen": [
+    "A-1893"
+   ],
+   "nombre": "Sillón Viena 1 plaza",
+   "categoria": "sofa",
+   "precio": 279,
+   "plazas": 1,
+   "ancho_cm": 80,
+   "fondo_cm": 82,
+   "alto_cm": 90,
+   "color": "beige",
+   "material": "lino",
+   "descripcion": null
+  },
+  {
+   "sku": "sofa-aarhus",
+   "ids_origen": [
+    "A-6902",
+    "B-93141"
+   ],
+   "nombre": "Sofá Aarhus",
+   "categoria": "sofa",
+   "precio": 1590,
+   "plazas": 3,
+   "ancho_cm": 215,
+   "fondo_cm": 95,
+   "alto_cm": 85,
+   "color": "marron",
+   "material": "piel",
+   "descripcion": "Sofá de tres plazas. Sofá Aarhus, acabado en piel color marron."
+  },
+  {
+   "sku": "sofa-alba",
+   "ids_origen": [
+    "B-78559"
+   ],
+   "nombre": "Sofá Alba",
+   "categoria": "sofa",
+   "precio": 599,
+   "plazas": 2,
+   "ancho_cm": 160,
+   "fondo_cm": 88,
+   "alto_cm": 82,
+   "color": "beige",
+   "material": "tela",
+   "descripcion": "Sofá de dos plazas. Sofá Alba, acabado en tela color beige."
+  },
+  {
+   "sku": "sofa-bergen",
+   "ids_origen": [
+    "B-52757"
+   ],
+   "nombre": "Sofá Bergen",
+   "categoria": "sofa",
+   "precio": 1190,
+   "plazas": 3,
+   "ancho_cm": 220,
+   "fondo_cm": 95,
+   "alto_cm": 88,
+   "color": "verde",
+   "material": "terciopelo",
+   "descripcion": "Sofá de tres plazas. Sofá Bergen, acabado en terciopelo color verde."
+  },
+  {
+   "sku": "sofa-cama-turku",
+   "ids_origen": [
+    "B-57515"
+   ],
+   "nombre": "Sofá cama Turku",
+   "categoria": "sofa",
+   "precio": 499,
+   "plazas": 2,
+   "ancho_cm": 150,
+   "fondo_cm": 85,
+   "alto_cm": 80,
+   "color": "gris",
+   "material": "tela",
+   "descripcion": "Sofá de dos plazas. Sofá cama Turku, acabado en tela color gris."
+  },
+  {
+   "sku": "sofa-lund",
+   "ids_origen": [
+    "A-2431"
+   ],
+   "nombre": "Sofá Lund tres plazas",
+   "categoria": "sofa",
+   "precio": 1076.9,
+   "plazas": 3,
+   "ancho_cm": 205,
+   "fondo_cm": 92,
+   "alto_cm": 84,
+   "color": "azul",
+   "material": "tela",
+   "descripcion": null
+  },
+  {
+   "sku": "sofa-malmo-con-chaise-longue",
+   "ids_origen": [
+    "A-6232",
+    "B-36536"
+   ],
+   "nombre": "Sofá Malmö con chaise longue",
+   "categoria": "sofa",
+   "precio": 1349,
+   "plazas": 4,
+   "ancho_cm": 280,
+   "fondo_cm": 160,
+   "alto_cm": 86,
+   "color": "gris",
+   "material": "tela",
+   "descripcion": "Sofá de cuatro plazas. Sofá Malmö con chaise longue, acabado en tela color gris. Medidas: 280 x 160 x 86 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "sofa-nordico",
+   "ids_origen": [
+    "A-1116",
+    "B-65337"
+   ],
+   "nombre": "Sofá Nórdico",
+   "categoria": "sofa",
+   "precio": 849,
+   "plazas": 3,
+   "ancho_cm": 210,
+   "fondo_cm": 90,
+   "alto_cm": 85,
+   "color": "gris",
+   "material": "lino",
+   "descripcion": "Sofá de tres plazas. Sofá Nórdico, acabado en lino color gris. Medidas: 210 x 90 x 85 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "alfombra-de-salon-160x230",
+   "ids_origen": [
+    "A-4533"
+   ],
+   "nombre": "Alfombra de salón 160x230",
+   "categoria": "textil",
+   "precio": 89,
+   "plazas": null,
+   "ancho_cm": 160,
+   "fondo_cm": 230,
+   "alto_cm": 1,
+   "color": "beige",
+   "material": "lana",
+   "descripcion": null
+  },
+  {
+   "sku": "funda-nordica-150-todo-el-ano",
+   "ids_origen": [
+    "A-5051"
+   ],
+   "nombre": "Funda nórdica 150 todo el año",
+   "categoria": "textil",
+   "precio": 69,
+   "plazas": null,
+   "ancho_cm": 240,
+   "fondo_cm": 220,
+   "alto_cm": 3,
+   "color": "blanco",
+   "material": "algodon",
+   "descripcion": null
+  },
+  {
+   "sku": "juego-de-sabanas-150",
+   "ids_origen": [
+    "B-22857"
+   ],
+   "nombre": "Juego de sábanas 150",
+   "categoria": "textil",
+   "precio": 35,
+   "plazas": null,
+   "ancho_cm": 240,
+   "fondo_cm": 270,
+   "alto_cm": 1,
+   "color": "blanco",
+   "material": "algodon",
+   "descripcion": "Juego de sábanas 150, acabado en algodon color blanco."
+  },
+  {
+   "sku": "manta-para-sofa",
+   "ids_origen": [
+    "A-9000"
+   ],
+   "nombre": "Manta para sofá",
+   "categoria": "textil",
+   "precio": 29,
+   "plazas": null,
+   "ancho_cm": 130,
+   "fondo_cm": 170,
+   "alto_cm": 1,
+   "color": "gris",
+   "material": "algodon",
+   "descripcion": null
+  },
+  {
+   "sku": "pack-2-almohadas-viscoelasticas",
+   "ids_origen": [
+    "A-3115"
+   ],
+   "nombre": "Pack 2 almohadas viscoelásticas",
+   "categoria": "textil",
+   "precio": 45,
+   "plazas": null,
+   "ancho_cm": 70,
+   "fondo_cm": 40,
+   "alto_cm": 12,
+   "color": "blanco",
+   "material": "espuma",
+   "descripcion": null
+  },
+  {
+   "sku": "pack-4-cojines-decorativos",
+   "ids_origen": [
+    "A-5053",
+    "B-21741"
+   ],
+   "nombre": "Pack 4 cojines decorativos",
+   "categoria": "textil",
+   "precio": 39,
+   "plazas": null,
+   "ancho_cm": 45,
+   "fondo_cm": 45,
+   "alto_cm": 15,
+   "color": "verde",
+   "material": "terciopelo",
+   "descripcion": "Pack 4 cojines decorativos, acabado en terciopelo color verde. Medidas: 45 x 45 x 15 cm (ancho x fondo x alto)."
+  },
+  {
+   "sku": "protector-de-colchon-impermeable-150",
+   "ids_origen": [
+    "B-39342"
+   ],
+   "nombre": "Protector de colchón impermeable 150",
+   "categoria": "textil",
+   "precio": 25,
+   "plazas": null,
+   "ancho_cm": 150,
+   "fondo_cm": 190,
+   "alto_cm": 1,
+   "color": "blanco",
+   "material": "algodon",
+   "descripcion": "Protector de colchón impermeable 150, acabado en algodon color blanco."
+  }
+ ]
+}

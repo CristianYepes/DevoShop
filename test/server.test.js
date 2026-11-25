@@ -110,29 +110,29 @@ test('offers and packs. KILLS: pack total not equal to the sum of its catalog li
     assert.equal(Math.round(pack.total * 100), cents, pack.id);
     assert.ok(pack.lines.length === pack.items.length, `${pack.id} references an unknown sku`);
   }
-  assert.match(await (await get('/ofertas')).text(), /<del>/);
-  assert.match(await (await get('/packs')).text(), /Añadir el pack al carrito/);
+  assert.match(await (await get('/ofertas')).text(), /Envío gratis/);
+  assert.match(await (await get('/packs')).text(), /Añadir el Pack [^<]* al carrito, [0-9.]+,00/);
 });
 
-for (const page of ['/ofertas', '/packs', '/', '/categoria/sofas', '/producto/demo-sofa-3p', '/buscar?q=sofa', '/buscar?q=zzz', '/no-existe']) {
+for (const page of ['/ofertas', '/packs', '/', '/categoria/sofa', '/producto/sofa-nordico', '/carrito', '/buscar?q=sofa', '/buscar?q=zzz', '/no-existe']) {
   test(`web quality on ${page}. KILLS: failing any of the quality checks`, async () => {
     assertWebQuality(await (await get(page)).text());
   });
 }
 
 test('store pages respond and unknown ones 404. KILLS: broken category, product or search routes', async () => {
-  assert.equal((await get('/categoria/sofas')).status, 200);
-  assert.equal((await get('/producto/demo-sofa-3p')).status, 200);
+  assert.equal((await get('/categoria/sofa')).status, 200);
+  assert.equal((await get('/producto/sofa-nordico')).status, 200);
   assert.equal((await get('/buscar?q=l%C3%A1mpara')).status, 200);
   assert.equal((await get('/categoria/no-existe')).status, 404);
   assert.equal((await get('/producto/no-existe')).status, 404);
 });
 
 test('product page shows name, price and add-to-cart. KILLS: agent cannot buy from the product page', async () => {
-  const html = await (await get('/producto/demo-sofa-3p')).text();
-  assert.match(html, /Sofá 3 plazas Nórdico/);
-  assert.match(html, /899,00\s€/);
-  assert.match(html, /<button[^>]*type="submit"[^>]*>Añadir al carrito<\/button>/);
+  const html = await (await get('/producto/sofa-nordico')).text();
+  assert.match(html, /Sofá Nórdico/);
+  assert.match(html, /849,00\s€/);
+  assert.match(html, /<button[^>]*type="submit"[^>]*>Añadir al carrito, 849,00\s€<\/button>/);
 });
 
 test('search finds products ignoring accents. KILLS: "lampara" not matching "Lámpara"', async () => {
