@@ -1,19 +1,25 @@
-# Database (PostgreSQL)
+# Database (BigQuery)
 
-Postgres 17 runs **inside the app container** (root `Dockerfile` + `docker-entrypoint.sh`).
-On start the entrypoint creates the database, loads `init.sql`, then runs `node src/server.js`.
+The data lives in a **BigQuery dataset** (`devoshop`, region `europe-southwest1`, the same as Cloud Run).
+`init.sql` is a GoogleSQL script that creates the dataset, tables and views and loads the catalogue.
 
 ```sh
-docker build -t devoshop .
-docker run --rm -p 8080:8080 --name devoshop devoshop
-docker exec -it devoshop psql            # psql shell (PG* env vars are preset)
+gcloud services enable bigquery.googleapis.com
+bq query --use_legacy_sql=false --location=europe-southwest1 < db/init.sql
 ```
 
-- Listens on `127.0.0.1:5432` only, so it is not reachable from outside the container; no password (trust auth).
-- The app gets `DATABASE_URL=postgres://devoshop@127.0.0.1:5432/devoshop` (and `PGHOST`, `PGUSER`, … for `pg`/`postgres` clients).
-- **Ephemeral:** the data lives in the container filesystem. Every new container (every Cloud Run instance)
-  starts from `init.sql`, and instances don't share data. Fine for the catalogue, which is read-only;
-  anything written at runtime (e.g. `pedidos`) is lost on restart and not shared between instances.
+You can also paste `init.sql` into the BigQuery console and run it as one script.
+
+- **Safe to re-run.** `productos`, `producto_origenes`, `historial_ventas`, `condiciones` and the views are replaced;
+  `pedidos` and `pedido_lineas` are only created if missing, so the orders already placed are kept.
+- **Shared and persistent.** Unlike the old Postgres in the container, every Cloud Run instance sees the same data,
+  and orders survive restarts.
+- **No CHECK constraints or enforced keys** in BigQuery: `PRIMARY KEY … NOT ENFORCED` is only a hint.
+  The build script checks the vocabularies (categoría, color, material) for the catalogue;
+  the app must check what it writes to `pedidos`.
+- **Access from Cloud Run:** the service account needs `roles/bigquery.dataViewer` on the dataset
+  (`roles/bigquery.dataEditor` to write orders) and `roles/bigquery.jobUser` on the project.
+- To use another dataset or region: `BQ_DATASET=devoshop_test BQ_LOCATION=EU node db/build-init.mjs`.
 
 ## Where the data comes from
 
@@ -24,7 +30,7 @@ docker exec -it devoshop psql            # psql shell (PG* env vars are preset)
 node db/build-init.mjs     # rewrites db/init.sql and prints what it merged/excluded
 ```
 
-After regenerating, rebuild the image; `init.sql` is copied into it at build time.
+After regenerating, run the `bq query` command above again.
 
 Cleaning done by the script:
 - Supplier A: latin-1 → UTF-8, decimal commas, prices without VAT (`IVA_INCL=N`) × 1.21, sizes in m or cm, all-caps names tidied.
@@ -41,5 +47,5 @@ Cleaning done by the script:
 | `historial_ventas` | Past orders of a similar store |
 | `condiciones` | Shipping, assembly, returns, warranty, payment as key/values |
 | `pedidos`, `pedido_lineas` | Orders placed in this store |
-| `catalogo_json` (view) | The exact `GET /catalogo.json` body: `SELECT catalogo FROM catalogo_json` |
-| `comprado_junto` (view) | Products bought together: `WHERE sku = '…' ORDER BY pedidos DESC` |
+| `catalogo_json` (view) | The exact `GET /catalogo.json` body, as a JSON string: `SELECT catalogo FROM devoshop.catalogo_json` |
+| `comprado_junto` (view) | Products bought together: `SELECT * FROM devoshop.comprado_junto WHERE sku = '…' ORDER BY pedidos DESC` |

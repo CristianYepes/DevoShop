@@ -54,6 +54,10 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregi
 gcloud services enable secretmanager.googleapis.com
 read -s CLAVE && printf '%s' "$CLAVE" | gcloud secrets create clave-equipo --data-file=- && unset CLAVE
 
+# Create and load the BigQuery dataset (re-run after `node db/build-init.mjs`; see db/README.md)
+gcloud services enable bigquery.googleapis.com
+bq query --use_legacy_sql=false --location=europe-southwest1 < db/init.sql
+
 gcloud run deploy devoshop --source . --region europe-southwest1 \
   --allow-unauthenticated --set-secrets CLAVE_EQUIPO=clave-equipo:latest
 ```
