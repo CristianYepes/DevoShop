@@ -5,7 +5,8 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { renderHome, renderError } from './pages.js';
+import { renderHome, renderError, renderCategory, renderProduct, renderSearch, renderOffers, renderPacks } from './pages.js';
+import { getCategory, getProduct, productsInCategory, searchProducts } from './catalog.js';
 
 const PUBLIC_DIR = fileURLToPath(new URL('../public/', import.meta.url));
 const MAX_BODY_BYTES = 16 * 1024;
@@ -107,6 +108,21 @@ async function route(req, res) {
 
   if (urlPath === '/') return send(res, 200, renderHome(), undefined, sessionCookie(req));
   if (urlPath.startsWith('/static/') && (await serveStatic(res, urlPath))) return;
+  if (urlPath === '/ofertas') return send(res, 200, renderOffers(), undefined, sessionCookie(req));
+  if (urlPath === '/packs') return send(res, 200, renderPacks(), undefined, sessionCookie(req));
+
+  const cat = /^\/categoria\/([a-z0-9-]+)\/?$/.exec(urlPath);
+  if (cat && getCategory(cat[1])) {
+    return send(res, 200, renderCategory(getCategory(cat[1]), productsInCategory(cat[1])), undefined, sessionCookie(req));
+  }
+  const prod = /^\/producto\/([^/]+)\/?$/.exec(urlPath);
+  if (prod && getProduct(prod[1])) {
+    return send(res, 200, renderProduct(getProduct(prod[1])), undefined, sessionCookie(req));
+  }
+  if (urlPath === '/buscar') {
+    const q = (new URL(req.url, 'http://x').searchParams.get('q') ?? '').trim().slice(0, 100);
+    return send(res, 200, renderSearch(q, searchProducts(q)), undefined, sessionCookie(req));
+  }
   return send(res, 404, renderError(404));
 }
 
