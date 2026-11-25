@@ -7,11 +7,13 @@ import {
   CATEGORIES, getCategory, productImage, featuredProducts, complementsFor, bestSellers, getPacks, allProducts,
 } from './catalog.js';
 
-// Cache-busting: the stylesheet URL changes whenever its content changes, so a new deploy
+// Cache-busting: an asset URL changes whenever its content changes, so a new deploy
 // is never hidden behind the 1-hour browser cache of /static.
-const CSS_VERSION = createHash('sha256')
-  .update(readFileSync(fileURLToPath(new URL('../public/styles.css', import.meta.url))))
+const assetVersion = (file) => createHash('sha256')
+  .update(readFileSync(fileURLToPath(new URL(`../public/${file}`, import.meta.url))))
   .digest('hex').slice(0, 10);
+const CSS_VERSION = assetVersion('styles.css');
+const CART_JS_VERSION = assetVersion('carrito.js');
 
 /** condiciones-de-venta.md */
 const ENVIO_GRATIS = 500;
@@ -319,7 +321,7 @@ function cartLines(r, editable) {
 <strong>${formatPrice(Math.round(l.product.price * 100) * l.quantity / 100)}</strong>
 ${editable ? `<form action="/carrito/cantidad" method="post" class="qty"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}">
 <label for="q-${escapeHtml(l.product.sku)}">Cantidad de ${escapeHtml(l.product.name)}</label>
-<select id="q-${escapeHtml(l.product.sku)}" name="cantidad" data-autosubmit>${Array.from({ length: 20 }, (_, i) => `<option value="${i + 1}"${i + 1 === l.quantity ? ' selected' : ''}>${i + 1}</option>`).join('')}</select>
+<input id="q-${escapeHtml(l.product.sku)}" name="cantidad" type="number" min="0" max="20" step="1" inputmode="numeric" value="${l.quantity}" data-autosubmit>
 <noscript><button type="submit">Actualizar</button></noscript></form>
 <form action="/carrito/cantidad" method="post"><input type="hidden" name="sku" value="${escapeHtml(l.product.sku)}"><input type="hidden" name="cantidad" value="0"><button type="submit">Quitar ${escapeHtml(l.product.name)}</button></form>` : ''}
 </li>`).join('')}</ul>
@@ -369,7 +371,7 @@ ${cartLines(r, true)}
 ${perks(r.total)}
 <p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></p>
 ${complementForms(cross, 'Completa tu pedido')}
-<script src="/static/carrito.js" defer></script>`
+<script src="/static/carrito.js?v=${CART_JS_VERSION}" defer></script>`
     : '<p>Tu carrito está vacío.</p><p><a class="btn" href="/">Seguir comprando</a></p>'}
 </div>`,
   });
