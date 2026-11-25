@@ -287,6 +287,7 @@ export function renderProduct(p, o = {}) {
 <select id="cantidad" name="cantidad">${options}</select>
 <button class="btn btn-block" type="submit">Añadir al carrito, ${formatPrice(p.price)}</button>
 </form>
+${bundleForm(p, complements[0])}
 <p class="ship-note">${p.price >= ENVIO_GRATIS ? '✓ Este producto tiene envío gratis.' : 'Envío gratis en pedidos desde 500 €.'} Montaje gratis desde 1.500 €.</p>
 ${complementForms(complements)}
 <p>${escapeHtml(p.description)}</p>
@@ -303,13 +304,28 @@ ${complementForms(complements)}
   });
 }
 
-/** Cross-sell right under the add-to-cart button: one-click add, with the real share from the sales history. */
-function complementForms(items, heading = 'Se compra junto con') {
+/**
+ * The product and its most-bought complement in one click, as a second, explicit option
+ * right under "Añadir al carrito" (nothing is added unless the customer picks it).
+ */
+function bundleForm(p, c) {
+  if (!c || Math.round(p.price * 100) + Math.round(c.price * 100) > PRESUPUESTO_MAX * 100) return '';
+  const total = (Math.round(p.price * 100) + Math.round(c.price * 100)) / 100;
+  return `<form class="bundle" action="/carrito/anadir" method="post">
+<input type="hidden" name="sku" value="${escapeHtml(p.sku)}">
+<input type="hidden" name="extra" value="${escapeHtml(c.sku)}">
+<button class="btn btn-block btn-outline" type="submit">Añadir ${escapeHtml(p.name)} + ${escapeHtml(c.name)}, ${formatPrice(total)}</button>
+<p class="bundle-note">${c.share ? `El ${c.share} % de quienes compran ${escapeHtml(p.name)} se lleva también ${escapeHtml(c.name)}.` : `${escapeHtml(c.name)} completa tu ${escapeHtml(p.name)}.`}</p>
+</form>`;
+}
+
+/** Cross-sell: one-click add, with the real share from the sales history. `volver` keeps the customer where they are. */
+function complementForms(items, heading = 'Se compra junto con', volver = '') {
   if (!items.length) return '';
   const li = items.map((c) => `<li class="complement">
 <img src="${productImage(c)}" alt="${escapeHtml(c.name)}" width="80" height="60" loading="lazy">
 <span><a href="/producto/${encodeURIComponent(c.sku)}">${escapeHtml(c.name)}</a> · ${formatPrice(c.price)}${c.share ? ` <span class="muted">(${c.share} % de los clientes lo añaden)</span>` : ''}</span>
-<form action="/carrito/anadir" method="post"><input type="hidden" name="sku" value="${escapeHtml(c.sku)}"><input type="hidden" name="cantidad" value="1"><button class="btn btn-outline" type="submit">Añadir ${escapeHtml(c.name)}, ${formatPrice(c.price)}</button></form>
+<form action="/carrito/anadir" method="post"><input type="hidden" name="sku" value="${escapeHtml(c.sku)}"><input type="hidden" name="cantidad" value="1">${volver ? `<input type="hidden" name="volver" value="${volver}">` : ''}<button class="btn btn-outline" type="submit">Añadir ${escapeHtml(c.name)}, ${formatPrice(c.price)}</button></form>
 </li>`).join('');
   return `<section class="complements" aria-label="${heading}"><h2 class="section-title">${heading}</h2><ul class="complement-list">${li}</ul></section>`;
 }
@@ -367,10 +383,10 @@ export function renderCart(r, o = {}) {
 ${o.added ? `<p class="notice" role="status">✓ Añadido al carrito: ${escapeHtml(o.added)}</p>` : ''}
 <h1 class="page-title">Tu carrito</h1>
 ${r.items.length ? `<div class="cart-top"><p><strong>Total: ${formatPrice(r.total)}</strong> · ${r.unidades} ${r.unidades === 1 ? 'producto' : 'productos'}</p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></div>
+${complementForms(cross, 'Completa tu pedido antes de pagar')}
 ${cartLines(r, true)}
 ${perks(r.total)}
 <p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></p>
-${complementForms(cross, 'Completa tu pedido')}
 <script src="/static/carrito.js?v=${CART_JS_VERSION}" defer></script>`
     : '<p>Tu carrito está vacío.</p><p><a class="btn" href="/">Seguir comprando</a></p>'}
 </div>`,
@@ -393,6 +409,7 @@ export function renderCheckout(r, orderId, form, errores, aviso = '', o = {}) {
 ${aviso ? `<p class="alert" role="alert">${aviso}</p>` : ''}
 ${cartLines(r, false)}
 ${perks(r.total)}
+${complementForms(cartComplements(r, 2), 'Añade a tu pedido', 'checkout')}
 <form class="checkout" action="/checkout" method="post">
 <input type="hidden" name="order_id" value="${escapeHtml(orderId)}">
 ${field('nombre', 'Nombre y apellidos', 'text', form.nombre, errores.nombre, 'name')}

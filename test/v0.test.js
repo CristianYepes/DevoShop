@@ -344,3 +344,47 @@ test('cart quantity is a number field that submits on change, no Actualizar butt
   assert.match(html, /<script src="\/static\/carrito\.js\?v=[0-9a-f]{10}" defer><\/script>/);
   assert.doesNotMatch(html.replace(/<noscript>[\s\S]*?<\/noscript>/g, ''), />Actualizar</);
 });
+
+test('cross-sell sits on the purchase path. KILLS: agent pays without ever passing a complement (0 cross-sell points)', async () => {
+  const { renderProduct, renderCart, renderCheckout } = await import('../src/pages.js');
+  const { getProduct, CROSS_SELL } = await import('../src/catalog.js');
+  const sofa = getProduct('sofa-nordico');
+  // Product page: a "product + complement" button right after "Añadir al carrito".
+  const ficha = renderProduct(sofa);
+  const main = ficha.indexOf('Añadir al carrito, 849,00');
+  const bundle = /<button[^>]*>Añadir Sofá Nórdico \+ ([^,<]+), ([\d.]+,\d\d)\s€<\/button>/.exec(ficha);
+  assert.ok(bundle && bundle.index > main, 'bundle button after the main add button');
+  assert.match(ficha, /name="extra" value="[a-z0-9-]+"/);
+  // Cart: suggestions BEFORE the cart lines, i.e. before the agent scrolls past them.
+  const r = { items: [{ product: sofa, quantity: 1 }], total: 849, unidades: 1 };
+  const cart = renderCart(r);
+  assert.ok(cart.indexOf('Completa tu pedido antes de pagar') < cart.indexOf('class="cart-lines"'));
+  // Checkout: one-click complements that come back to the checkout.
+  const pay = renderCheckout(r, '3fa85f64-5717-4562-b3fc-2c963f66afa6', {}, {});
+  assert.match(pay, /Añade a tu pedido/);
+  assert.match(pay, /name="volver" value="checkout"/);
+  for (const m of pay.matchAll(/<input type="hidden" name="sku" value="([^"]+)"><input type="hidden" name="cantidad" value="1"><input type="hidden" name="volver"/g)) {
+    assert.ok(CROSS_SELL.includes(getProduct(m[1]).category), `${m[1]} is not lighting, textile, storage or accessory`);
+  }
+});
+
+test('bundle and checkout add work end to end. KILLS: broken extra/volver handling', async () => {
+  const { createApp } = await import('../src/server.js');
+  const app = createApp({ secreto: 's', claveEquipo: '' });
+  await new Promise((r) => app.listen(0, '127.0.0.1', r));
+  const b = `http://127.0.0.1:${app.address().port}`;
+  try {
+    const post = (path, body, cookie = '') => fetch(b + path, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie }, body });
+    let r = await post('/carrito/anadir', 'sku=sofa-nordico&extra=lampara-de-pie-arco');
+    let cookie = r.headers.getSetCookie()[0].split(';')[0];
+    let html = await (await fetch(`${b}/carrito`, { headers: { cookie } })).text();
+    assert.match(html, /Total: 938,00/);
+    r = await post('/carrito/anadir', 'sku=manta-para-sofa&cantidad=1&volver=checkout', cookie);
+    assert.equal(r.headers.get('location'), '/checkout');
+    cookie = r.headers.getSetCookie()[0].split(';')[0];
+    html = await (await fetch(`${b}/checkout`, { headers: { cookie } })).text();
+    assert.match(html, /Pagar 967,00\s€/);
+  } finally {
+    await new Promise((r) => app.close(r));
+  }
+});

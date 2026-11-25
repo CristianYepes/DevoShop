@@ -137,8 +137,13 @@ async function route(req, res, cfg) {
   if (req.method === 'POST' && urlPath.startsWith('/carrito/')) {
     const form = await readFormBody(req);
     let lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
-    if (urlPath === '/carrito/anadir') lineas = anadir(lineas, form.sku, Math.max(cantidadValida(form.cantidad ?? 1), 1));
-    else if (urlPath === '/carrito/cantidad') lineas = fijarCantidad(lineas, form.sku, cantidadValida(form.cantidad));
+    if (urlPath === '/carrito/anadir') {
+      lineas = anadir(lineas, form.sku, Math.max(cantidadValida(form.cantidad ?? 1), 1));
+      // "Añadir X + complemento": the complement the customer chose with it, one unit.
+      if (form.extra && getProduct(form.extra)) lineas = anadir(lineas, form.extra, 1);
+      // A complement added from the checkout page keeps the customer on the checkout.
+      if (form.volver === 'checkout') return redirect(res, '/checkout', [cookieCarrito(cfg.secreto, lineas)]);
+    } else if (urlPath === '/carrito/cantidad') lineas = fijarCantidad(lineas, form.sku, cantidadValida(form.cantidad));
     else if (urlPath === '/carrito/anadir-pack') {
       for (const l of getPack(form.pack)?.lines ?? []) lineas = anadir(lineas, l.product.sku, l.quantity);
     } else return send(res, 404, renderError(404));
