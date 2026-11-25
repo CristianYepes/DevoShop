@@ -382,7 +382,6 @@ ${suggestions.length ? `<section class="complements" aria-labelledby="completa">
 <p class="summary-total"><span>Total (IVA incluido)</span> <strong>${formatPrice(priced.total)}</strong></p>
 ${thresholds(priced.total)}
 ${checkoutBtn}
-<p class="muted small">Sin registro. Pago simulado: no se piden datos de tarjeta.</p>
 <a class="continue" href="/">Seguir comprando</a>
 </aside>
 </div>
