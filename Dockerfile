@@ -1,27 +1,22 @@
-# Pinned Node LTS image; the app has no npm dependencies, so there is no install step.
-# PostgreSQL runs in the same container, on 127.0.0.1 only (see docker-entrypoint.sh).
-FROM node:22.22.0-alpine
-RUN apk add --no-cache postgresql17 postgresql17-client \
- && mkdir -p /run/postgresql /var/lib/postgresql/data \
- && chown -R node:node /run/postgresql /var/lib/postgresql
+# DevoShop, Go server. Two stages: build a static binary, then run it on a distroless image
+# that holds nothing else (no shell, no package manager, no source). The supplier data and
+# public/ are embedded in the binary (assets.go), so there are no loose files to leak.
+# The previous Node.js + in-container PostgreSQL image is kept as Dockerfile.node.
+FROM golang:1.26.11-alpine3.23 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY assets.go ./
+COPY cmd ./cmd
+COPY internal ./internal
+COPY public ./public
+COPY db/data/proveedor-a.csv db/data/proveedor-b.json db/data/historial-ventas.csv ./db/data/
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /devoshop ./cmd/devoshop
 
-ENV NODE_ENV=production \
-    PGDATA=/var/lib/postgresql/data \
-    PGHOST=127.0.0.1 \
-    PGPORT=5432 \
-    PGUSER=devoshop \
-    PGDATABASE=devoshop \
-    DATABASE_URL=postgres://devoshop@127.0.0.1:5432/devoshop
-
-WORKDIR /app
-COPY --chown=node:node package.json ./
-COPY --chown=node:node src ./src
-COPY --chown=node:node public ./public
-COPY --chown=node:node db/init.sql ./db/init.sql
-# Supplier files: the server builds the clean catalog from them at startup (src/limpieza.js).
-COPY --chown=node:node db/data ./db/data
-COPY --chown=node:node --chmod=755 docker-entrypoint.sh ./
-USER node
+# distroless/static ships CA certificates (HTTPS to the order mailbox) and runs as non-root.
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /devoshop /devoshop
+USER nonroot:nonroot
 # Cloud Run sets PORT (8080); the server reads it.
-ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "src/server.js"]
+EXPOSE 8080
+ENTRYPOINT ["/devoshop"]

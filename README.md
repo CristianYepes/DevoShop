@@ -37,6 +37,32 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 - No internal files exposed (config, source, backups, order or customer lists).
 - **Secrets never go into the repository.** The team key is read from the `CLAVE_EQUIPO` environment variable, and `.env` is git-ignored.
 
+## Backend (Go)
+
+The store runs as a single Go binary built only on the standard library's `net/http` (plus
+`golang.org/x/text` for accent folding and Spanish sorting). The supplier files and `public/`
+are embedded in the binary, the catalog is cleaned in memory at startup, and the home,
+category and product pages are rendered once at startup, so a request costs a map lookup.
+
+| Path | What it does |
+|---|---|
+| `cmd/devoshop` | Entry point: reads the environment, listens on `PORT`, shuts down cleanly on `SIGTERM` |
+| `internal/catalog` | Supplier cleaning and merge (`limpieza.go`), catalog, search, best sellers, "bought together", packs |
+| `internal/cart` | HMAC-signed cart cookie (`hk_carrito`) |
+| `internal/order` | v1.0 order, guest form validation, mailbox client with retries |
+| `internal/assistant` | `/api/asistente`, answers from the catalog and sales conditions only |
+| `internal/web` | Routing, security headers, session cookie, HTML pages |
+
+```bash
+go test ./...                                         # end-to-end tests with a fake mailbox
+CARRITO_SECRETO=dev go run ./cmd/devoshop             # http://localhost:8080
+```
+
+The Go server is a port of the original Node.js server in `src/`. Both produce the same
+`/catalogo.json`, pages and assistant answers byte for byte. The one difference is a fix:
+`/categoria/silla_oficina` returns 404 in the Node version. The Node image is kept as
+`Dockerfile.node`; the default `Dockerfile` builds the Go server.
+
 ## Configuration
 
 | Variable | Description |
