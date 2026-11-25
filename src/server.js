@@ -68,42 +68,40 @@ async function serveStatic(res, urlPath) {
   }
 }
 
-function readJsonBody(req) {
+/**
+ * Reads the request body as text, up to MAX_BODY_BYTES. A bigger body is drained (not
+ * buffered) and rejected with 413, so the client gets a clean error page instead of a
+ * reset connection.
+ */
+function readBodyText(req) {
   return new Promise((resolve, reject) => {
     let size = 0;
+    let tooLarge = false;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(Object.assign(new Error('body too large'), { status: 413 }));
-        req.destroy();
-      } else chunks.push(c);
+      if (size > MAX_BODY_BYTES) tooLarge = true;
+      else chunks.push(c);
     });
     req.on('end', () => {
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-      } catch {
-        reject(Object.assign(new Error('invalid json'), { status: 400 }));
-      }
+      if (tooLarge) reject(Object.assign(new Error('body too large'), { status: 413 }));
+      else resolve(Buffer.concat(chunks).toString('utf8'));
     });
     req.on('error', reject);
   });
 }
 
-function readFormBody(req) {
-  return new Promise((resolve, reject) => {
-    let size = 0;
-    const chunks = [];
-    req.on('data', (c) => {
-      size += c.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(Object.assign(new Error('body too large'), { status: 413 }));
-        req.destroy();
-      } else chunks.push(c);
-    });
-    req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')))));
-    req.on('error', reject);
-  });
+async function readJsonBody(req) {
+  const text = await readBodyText(req);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw Object.assign(new Error('invalid json'), { status: 400 });
+  }
+}
+
+async function readFormBody(req) {
+  return Object.fromEntries(new URLSearchParams(await readBodyText(req)));
 }
 
 const pageCache = new Map();
