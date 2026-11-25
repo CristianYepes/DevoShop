@@ -43,6 +43,7 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 |---|---|
 | `PORT` | Port to listen on (Cloud Run sets it to `8080`) |
 | `CLAVE_EQUIPO` | Team key for the order mailbox. Set it in Cloud Run and never commit it |
+| `ASISTENTE_URL` | Base URL of the Go assistant Cloud Run service (`devoshop-asistente`). When set, `POST /api/asistente` proxies requests to it |
 
 ## Deploy
 
@@ -65,6 +66,39 @@ Check that the store is public (it should return `200`):
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://YOUR_URL
 ```
+
+### Deploy and wire the Go assistant (`asistente/`)
+
+The shop assistant runs as an independent Go microservice in [`asistente/`](./asistente/README.md). To deploy it and connect it to `devoshop`:
+
+```bash
+# 1. Store the Gemini API key in Secret Manager (once)
+read -s GEMINI_KEY && printf '%s' "$GEMINI_KEY" | gcloud secrets create gemini-api-key --data-file=- && unset GEMINI_KEY
+
+# 2. Deploy the Go container from asistente/
+cd asistente
+gcloud run deploy devoshop-asistente \
+  --source . \
+  --region europe-southwest1 \
+  --allow-unauthenticated \
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+
+# 3. Point the main store service to the deployed assistant URL
+gcloud run services update devoshop \
+  --region europe-southwest1 \
+  --update-env-vars ASISTENTE_URL=https://YOUR_ASISTENTE_URL
+```
+
+Verify the endpoint through the main store URL:
+
+```bash
+curl -s -w "\nHTTP: %{http_code} | Tiempo: %{time_total}s\n" \
+  -X POST https://YOUR_URL/api/asistente \
+  -H "content-type: application/json" \
+  -d '{"pregunta":"¿Cuánto cuesta el envío?"}'
+```
+
+For local Go execution, Docker build/run, and environment variables inside `asistente/`, see [`asistente/README.md`](./asistente/README.md).
 
 ## Team
 

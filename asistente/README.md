@@ -25,6 +25,21 @@ En `asistente/data/` hay ficheros de ejemplo (`catalogo.json` y `condiciones-de-
 1. Sustituye `asistente/data/condiciones-de-venta.md` por el fichero real del paquete del hackathon (o configura `CONDITIONS_URL` / `CONDITIONS_PATH`).
 2. Sustituye `asistente/data/catalogo.json` por el catálogo limpio real, o apunta `CATALOG_URL` a `https://TU_TIENDA.run.app/catalogo.json`.
 
+## Variables de entorno
+
+| Variable | Por defecto | Descripción |
+|---|---|---|
+| `PORT` | `8080` | Puerto HTTP de escucha |
+| `GEMINI_API_KEY` | *(vacía)* | Clave de Gemini API. Si se omite, usa el motor determinista local |
+| `GEMINI_MODEL` | `gemini-2.5-flash-lite` | Modelo rápido recomendado para mantener la mediana `<= 3 s` |
+| `CATALOG_PATH` | `data/catalogo.json` | Ruta local al catálogo JSON |
+| `CATALOG_URL` | *(vacía)* | URL remota opcional del catálogo (con respaldo en `CATALOG_PATH`) |
+| `CONDITIONS_PATH` | `data/condiciones-de-venta.md` | Ruta local a las condiciones de venta en Markdown |
+| `CONDITIONS_URL` | *(vacía)* | URL remota opcional de condiciones (con respaldo en `CONDITIONS_PATH`) |
+| `DATA_REFRESH_SECONDS` | `0` | Segundos para recarga periódica si se usan URLs (`0` = solo al arrancar) |
+| `LLM_TIMEOUT_MS` | `4500` | Timeout máximo en milisegundos para la llamada a Gemini |
+| `CACHE_TTL_SECONDS` | `300` | TTL de la caché en memoria por pregunta normalizada |
+
 ## Ejecución local
 
 ```bash
@@ -33,12 +48,22 @@ go test ./...
 GEMINI_API_KEY="tu_clave" go run ./cmd/asistente
 ```
 
-Prueba rápida:
+Prueba rápida en Bash / WSL:
 
 ```bash
-curl -s -X POST http://localhost:8080/api/asistente \
+curl -s -w "\nHTTP: %{http_code} | Tiempo: %{time_total}s\n" \
+  -X POST http://localhost:8080/api/asistente \
   -H 'content-type: application/json' \
   -d '{"pregunta":"¿Cuánto cuesta el envío?"}'
+```
+
+Prueba rápida en PowerShell (Windows):
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:8080/api/asistente" `
+  -ContentType "application/json; charset=utf-8" `
+  -Body ([System.Text.Encoding]::UTF8.GetBytes('{"pregunta":"¿Cuánto cuesta el envío?"}'))
 ```
 
 ## Contenedor Docker
@@ -51,7 +76,15 @@ docker run --rm -p 8080:8080 \
   devoshop-asistente
 ```
 
+Para comprobar los logs del contenedor y confirmar el número de productos cargados y si Gemini está activo:
+
+```bash
+docker logs <id_o_nombre_contenedor>
+```
+
 ## Despliegue en Google Cloud Run (`europe-southwest1`)
+
+1. Despliega el contenedor Go **desde la carpeta `asistente/`** (si ejecutas `gcloud run deploy` desde la raíz del repo, se desplegará el servidor Node.js, no el asistente en Go):
 
 ```bash
 cd asistente
@@ -59,8 +92,24 @@ gcloud run deploy devoshop-asistente \
   --source . \
   --region europe-southwest1 \
   --allow-unauthenticated \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest \
-  --set-env-vars CATALOG_URL=https://TU_TIENDA.run.app/catalogo.json
+  --set-secrets="GEMINI_API_KEY=gemini-api-key:latest"
 ```
 
-> **Integración con el servidor base (`src/server.js`):** si la tienda principal corre en otro servicio de Cloud Run, puedes reenviar `POST /api/asistente` desde `src/server.js` hacia la URL de `devoshop-asistente` (por ejemplo leyendo `ASISTENTE_URL` desde variable de entorno) manteniendo una única URL pública para el portal del hackathon.
+*(Opcional: añade `--set-env-vars CATALOG_URL=https://TU_TIENDA.run.app/catalogo.json` si quieres que lea el catálogo remoto en lugar del fichero empaquetado en `asistente/data/catalogo.json`).*
+
+2. Conecta el servicio principal `devoshop` a la `Service URL` devuelta en el paso anterior:
+
+```bash
+gcloud run services update devoshop \
+  --region europe-southwest1 \
+  --update-env-vars="ASISTENTE_URL=https://TU_ASISTENTE_URL.run.app"
+```
+
+3. Verifica la respuesta final a través de la URL pública de la tienda:
+
+```bash
+curl -s -w "\nHTTP: %{http_code} | Tiempo: %{time_total}s\n" \
+  -X POST https://TU_TIENDA.run.app/api/asistente \
+  -H "content-type: application/json" \
+  -d '{"pregunta":"¿Cuánto cuesta el envío?"}'
+```
