@@ -1,0 +1,14 @@
+.git
+.claude
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+.env
+.env.*
+.DS_Store
+node_modules
+test
+docs
+*.md
+*.log
+pedido*.json
