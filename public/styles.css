@@ -232,7 +232,7 @@ del { color: var(--muted); font-weight: 400; font-size: .9em; }
   .cart-line, .complement { grid-template-columns: 72px 1fr; }
   .cart-line img, .complement img { width: 72px; height: 54px; }
 }
-.cart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 8px 0 0; }
+.cart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 8px 0 28px; }
 .cart-top p { margin: 0; }
 .cart-top .btn-block { width: auto; }
 @media (max-width: 480px) { .cart-top .btn-block { width: 100%; } }
@@ -244,7 +244,7 @@ del { color: var(--muted); font-weight: 400; font-size: .9em; }
 .cart-line button { font: inherit; font-size: 13px; padding: 6px 14px; border: 1px solid var(--ink); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
 .cart-line button:hover { background: var(--ink); color: #fff; }
 .qty label { font-size: 13px; color: var(--muted); }
-.qty input { width: 64px; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.qty input, .qty select { width: 72px; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
 .cart-total { font-size: 18px; margin: 16px 0 8px; }
 .perks { font-size: 14px; color: var(--muted); display: grid; gap: 4px; margin: 0 0 16px; }
 .alert { background: #fbeeea; border: 1px solid #e4b6a8; border-radius: var(--radius-sm); padding: 12px 16px; }
