@@ -1,12 +1,18 @@
 // DevoShop HTTP server. Uses only Node's standard library: fewer dependencies means a
 // faster cold start on Cloud Run and nothing to leak in "x-powered-by" style headers.
 import { createServer } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID, createHmac } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { renderHome, renderError, renderCategory, renderProduct, renderSearch, renderOffers, renderPacks } from './pages.js';
-import { getCategory, getProduct, productsInCategory, searchProducts } from './catalog.js';
+import {
+  renderHome, renderError, renderCategory, renderProduct, renderSearch, renderOffers, renderPacks,
+  renderCart, renderCheckout, renderConfirmation, renderEmptyCheckout, renderOrderError,
+} from './pages.js';
+import { getCategory, getProduct, getPack, productsInCategory, searchProducts, catalogoJson } from './catalog.js';
+import { leerCarrito, cookieCarrito, anadir, fijarCantidad, cantidadValida, resumen } from './carrito.js';
+import { validarCliente, construirPedido, enviarPedido, esUuidV4, BUZON_URL_DEFECTO } from './pedido.js';
+import { responder } from './asistente.js';
 
 const PUBLIC_DIR = fileURLToPath(new URL('../public/', import.meta.url));
 const MAX_BODY_BYTES = 16 * 1024;
@@ -84,7 +90,29 @@ function readJsonBody(req) {
   });
 }
 
-async function route(req, res) {
+function readFormBody(req) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        reject(Object.assign(new Error('body too large'), { status: 413 }));
+        req.destroy();
+      } else chunks.push(c);
+    });
+    req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString('utf8')))));
+    req.on('error', reject);
+  });
+}
+
+const getCookie = (req, name) => new RegExp(`(?:^|;\\s*)${name}=([^;]+)`).exec(req.headers.cookie ?? '')?.[1];
+const redirect = (res, location, cookies = []) => {
+  res.writeHead(303, { ...SECURITY_HEADERS, location, 'set-cookie': cookies, 'content-type': 'text/plain; charset=utf-8' });
+  res.end();
+};
+
+async function route(req, res, cfg) {
   let urlPath;
   try {
     urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
@@ -98,8 +126,38 @@ async function route(req, res) {
     if (typeof body?.pregunta !== 'string' || !body.pregunta.trim()) {
       return sendJson(res, 400, { error: 'Falta "pregunta"' });
     }
-    // Placeholder until the catalog and sales conditions are loaded.
-    return sendJson(res, 200, { respuesta: 'El asistente de DevoShop estará disponible en breve.' });
+    return sendJson(res, 200, { respuesta: responder(body.pregunta.slice(0, 2000)) });
+  }
+
+  if (req.method === 'POST' && urlPath.startsWith('/carrito/')) {
+    const form = await readFormBody(req);
+    let lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
+    if (urlPath === '/carrito/anadir') lineas = anadir(lineas, form.sku, Math.max(cantidadValida(form.cantidad ?? 1), 1));
+    else if (urlPath === '/carrito/cantidad') lineas = fijarCantidad(lineas, form.sku, cantidadValida(form.cantidad));
+    else if (urlPath === '/carrito/anadir-pack') {
+      for (const l of getPack(form.pack)?.lines ?? []) lineas = anadir(lineas, l.product.sku, l.quantity);
+    } else return send(res, 404, renderError(404));
+    return redirect(res, '/carrito', [cookieCarrito(cfg.secreto, lineas)]);
+  }
+
+  if (urlPath === '/checkout' && req.method === 'POST') {
+    const form = await readFormBody(req);
+    const lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
+    if (!lineas.length) return redirect(res, '/carrito');
+    const orderId = esUuidV4(form.order_id) ? form.order_id : randomUUID();
+    const { errores, cliente } = validarCliente(form);
+    if (Object.keys(errores).length) {
+      return send(res, 400, renderCheckout(resumen(lineas), orderId, form, errores));
+    }
+    const pedido = construirPedido(lineas, cliente, orderId);
+    const envio = await enviarPedido(pedido, { url: cfg.buzonUrl, clave: cfg.claveEquipo, reintentoMs: cfg.reintentoMs });
+    if (!envio.ok) return send(res, 502, renderOrderError(resumen(lineas), orderId, form));
+    // Confirmed by the mailbox: empty the cart and keep a signed copy of the order to show it.
+    const recibo = Buffer.from(JSON.stringify({ id: orderId, items: pedido.items, total: pedido.total, name: cliente.name })).toString('base64url');
+    return redirect(res, `/pedido/${orderId}`, [
+      cookieCarrito(cfg.secreto, []),
+      `hk_pedido=${recibo}.${signRecibo(cfg.secreto, recibo)}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=86400`,
+    ]);
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -107,6 +165,23 @@ async function route(req, res) {
   }
 
   if (urlPath === '/') return send(res, 200, renderHome(), undefined, sessionCookie(req));
+  if (urlPath === '/catalogo.json') return send(res, 200, catalogoJson(), 'application/json; charset=utf-8');
+  if (urlPath === '/carrito') {
+    const lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
+    return send(res, 200, renderCart(resumen(lineas)), undefined, sessionCookie(req));
+  }
+  if (urlPath === '/checkout') {
+    const lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
+    if (!lineas.length) return send(res, 200, renderEmptyCheckout());
+    return send(res, 200, renderCheckout(resumen(lineas), randomUUID(), {}, {}));
+  }
+  const conf = /^\/pedido\/([0-9a-f-]{36})$/.exec(urlPath);
+  if (conf) {
+    const recibo = leerRecibo(cfg.secreto, getCookie(req, 'hk_pedido'));
+    if (recibo?.id === conf[1]) return send(res, 200, renderConfirmation(recibo));
+    return send(res, 404, renderError(404));
+  }
+  if (urlPath === '/mas-vendidos') return send(res, 200, renderOffers(), undefined, sessionCookie(req));
   if (urlPath.startsWith('/static/') && (await serveStatic(res, urlPath))) return;
   if (urlPath === '/ofertas') return send(res, 200, renderOffers(), undefined, sessionCookie(req));
   if (urlPath === '/packs') return send(res, 200, renderPacks(), undefined, sessionCookie(req));
@@ -126,10 +201,36 @@ async function route(req, res) {
   return send(res, 404, renderError(404));
 }
 
-export function createApp() {
+function signRecibo(secret, data) {
+  return createHmac('sha256', secret).update(`recibo:${data}`).digest('base64url');
+}
+
+function leerRecibo(secret, value) {
+  const [data, mac] = String(value ?? '').split('.');
+  if (!data || mac !== signRecibo(secret, data)) return null;
+  try { return JSON.parse(Buffer.from(data, 'base64url').toString('utf8')); } catch { return null; }
+}
+
+/**
+ * Options (all optional, read from the environment otherwise):
+ * buzonUrl (BUZON_URL), claveEquipo (CLAVE_EQUIPO), secreto (CARRITO_SECRETO), reintentoMs.
+ */
+export function createApp(opts = {}) {
+  const cfg = {
+    buzonUrl: opts.buzonUrl ?? process.env.BUZON_URL ?? BUZON_URL_DEFECTO,
+    claveEquipo: opts.claveEquipo ?? process.env.CLAVE_EQUIPO,
+    secreto: opts.secreto ?? process.env.CARRITO_SECRETO,
+    reintentoMs: opts.reintentoMs ?? 1500,
+  };
+  if (!cfg.secreto) {
+    // Without a shared secret each instance signs carts differently: fine locally, not on several instances.
+    cfg.secreto = randomBytes(32).toString('hex');
+    console.warn('CARRITO_SECRETO no configurado: se usa uno aleatorio (los carritos no sobreviven a un reinicio ni a otra instancia).');
+  }
+  if (!cfg.claveEquipo) console.warn('CLAVE_EQUIPO no configurada: los pedidos no se podrán enviar al buzón.');
   return createServer(async (req, res) => {
     try {
-      await route(req, res);
+      await route(req, res, cfg);
     } catch (err) {
       const status = err.status ?? 500;
       // Log the detail server-side (Cloud Run logs); the client only gets a generic page.

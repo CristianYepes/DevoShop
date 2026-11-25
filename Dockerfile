@@ -18,6 +18,8 @@ COPY --chown=node:node package.json ./
 COPY --chown=node:node src ./src
 COPY --chown=node:node public ./public
 COPY --chown=node:node db/init.sql ./db/init.sql
+# Supplier files: the server builds the clean catalog from them at startup (src/limpieza.js).
+COPY --chown=node:node db/data ./db/data
 COPY --chown=node:node --chmod=755 docker-entrypoint.sh ./
 USER node
 # Cloud Run sets PORT (8080); the server reads it.

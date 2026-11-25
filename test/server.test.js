@@ -110,7 +110,11 @@ test('offers and packs. KILLS: pack total not equal to the sum of its catalog li
     assert.equal(Math.round(pack.total * 100), cents, pack.id);
     assert.ok(pack.lines.length === pack.items.length, `${pack.id} references an unknown sku`);
   }
-  assert.match(await (await get('/ofertas')).text(), /<del>/);
+  // No invented "before" prices anywhere (the data has none): best sellers instead of fake offers.
+  const best = await (await get('/mas-vendidos')).text();
+  assert.doesNotMatch(best, /<del>/);
+  assert.match(best, /href="\/producto\//);
+  for (const pack of getPacks()) assert.ok(pack.total < 4000, `${pack.id} exceeds the agent budget`);
   assert.match(await (await get('/packs')).text(), /Añadir el pack al carrito/);
 });
 
@@ -121,18 +125,18 @@ for (const page of ['/ofertas', '/packs', '/', '/categoria/sofas', '/producto/de
 }
 
 test('store pages respond and unknown ones 404. KILLS: broken category, product or search routes', async () => {
-  assert.equal((await get('/categoria/sofas')).status, 200);
-  assert.equal((await get('/producto/demo-sofa-3p')).status, 200);
+  assert.equal((await get('/categoria/sofa')).status, 200);
+  assert.equal((await get('/producto/sofa-nordico')).status, 200);
   assert.equal((await get('/buscar?q=l%C3%A1mpara')).status, 200);
   assert.equal((await get('/categoria/no-existe')).status, 404);
   assert.equal((await get('/producto/no-existe')).status, 404);
 });
 
 test('product page shows name, price and add-to-cart. KILLS: agent cannot buy from the product page', async () => {
-  const html = await (await get('/producto/demo-sofa-3p')).text();
-  assert.match(html, /Sofá 3 plazas Nórdico/);
-  assert.match(html, /899,00\s€/);
-  assert.match(html, /<button[^>]*type="submit"[^>]*>Añadir al carrito<\/button>/);
+  const html = await (await get('/producto/sofa-nordico')).text();
+  assert.match(html, /Sofá Nórdico/);
+  assert.match(html, /849,00\s€/);
+  assert.match(html, /<button[^>]*type="submit"[^>]*>Añadir al carrito, 849,00\s€<\/button>/);
 });
 
 test('search finds products ignoring accents. KILLS: "lampara" not matching "Lámpara"', async () => {
