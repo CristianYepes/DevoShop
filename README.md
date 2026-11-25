@@ -43,6 +43,8 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 |---|---|
 | `PORT` | Port to listen on (Cloud Run sets it to `8080`) |
 | `CLAVE_EQUIPO` | Team key for the order mailbox. Set it in Cloud Run and never commit it |
+| `CARRITO_SECRETO` | Secret used to sign the cart cookie. Must be the same on every instance (Secret Manager); if missing, a random one is generated at startup |
+| `BUZON_URL` | Order mailbox URL (defaults to the hackathon mailbox) |
 | `ASISTENTE_URL` | Base URL of the Go assistant Cloud Run service (`devoshop-asistente`). When set, `POST /api/asistente` proxies requests to it |
 
 ## Deploy
@@ -54,6 +56,11 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregi
 # Store the team key in Secret Manager (paste it when prompted, so it never lands in shell history)
 gcloud services enable secretmanager.googleapis.com
 read -s CLAVE && printf '%s' "$CLAVE" | gcloud secrets create clave-equipo --data-file=- && unset CLAVE
+
+# Create and load the BigQuery dataset (re-run after `node db/build-init.mjs`; see db/README.md)
+gcloud services enable bigquery.googleapis.com
+bq --location=europe-southwest1 mk --dataset devoshop   # once; skip if it exists
+bq --location=europe-southwest1 query --use_legacy_sql=false < db/init.sql
 
 gcloud run deploy devoshop --source . --region europe-southwest1 \
   --allow-unauthenticated --set-secrets CLAVE_EQUIPO=clave-equipo:latest
