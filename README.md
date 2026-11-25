@@ -43,6 +43,8 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 |---|---|
 | `PORT` | Port to listen on (Cloud Run sets it to `8080`) |
 | `CLAVE_EQUIPO` | Team key for the order mailbox. Set it in Cloud Run and never commit it |
+| `CARRITO_SECRETO` | Secret used to sign the cart cookie. Must be the same on every instance (Secret Manager); if missing, a random one is generated at startup |
+| `BUZON_URL` | Order mailbox URL (defaults to the hackathon mailbox) |
 
 ## Deploy
 
