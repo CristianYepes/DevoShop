@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  CATEGORIES, getCategory, productImage, featuredProducts, complementsFor, bestSellers, getPacks,
+  CATEGORIES, getCategory, productImage, featuredProducts, complementsFor, bestSellers, getPacks, allProducts,
 } from './catalog.js';
 
 // Cache-busting: the stylesheet URL changes whenever its content changes, so a new deploy
@@ -13,6 +13,10 @@ const CSS_VERSION = createHash('sha256')
   .update(readFileSync(fileURLToPath(new URL('../public/styles.css', import.meta.url))))
   .digest('hex').slice(0, 10);
 
+/** condiciones-de-venta.md */
+const ENVIO_GRATIS = 500;
+const MONTAJE_GRATIS = 1500;
+
 export const escapeHtml = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -20,9 +24,10 @@ export const escapeHtml = (s) =>
 const priceFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' });
 export const formatPrice = (n) => priceFormat.format(n);
 
-function header(activeCategory, query = '') {
+function header(activeCategory, query = '', cartCount = 0) {
   const current = (key) => (key === activeCategory ? ' aria-current="page"' : '');
-  const links = `<li><a class="nav-highlight" href="/mas-vendidos"${current('ofertas')}>Más vendidos</a></li>`
+  const links = `<li><a class="nav-highlight" href="/ofertas"${current('ofertas')}>Ofertas</a></li>`
+    + `<li><a class="nav-highlight" href="/mas-vendidos"${current('mas-vendidos')}>Más vendidos</a></li>`
     + `<li><a class="nav-highlight" href="/packs"${current('packs')}>Packs</a></li>`
     + CATEGORIES.map((c) => `<li><a href="/categoria/${c.slug}"${current(c.slug)}>${c.name}</a></li>`).join('');
   return `<header class="site-header">
@@ -33,23 +38,25 @@ function header(activeCategory, query = '') {
 <input id="q" name="q" type="search" value="${escapeHtml(query)}" placeholder="Buscar sofás, mesas, lámparas…">
 <button type="submit">Buscar</button>
 </form>
-<a class="cart-link" href="/carrito" aria-label="Carrito" title="Carrito"><span aria-hidden="true">🛒</span></a>
+<a class="cart-link" href="/carrito" aria-label="${cartLabel(cartCount)}" title="${cartLabel(cartCount)}"><span aria-hidden="true">🛒</span>${cartCount ? `<span class="cart-count" aria-hidden="true">${cartCount}</span>` : ''}</a>
 </div>
 <nav class="cat-nav" aria-label="Categorías"><ul class="container">${links}</ul></nav>
 </header>`;
 }
+
+const cartLabel = (n) => (n ? `Carrito, ${n} ${n === 1 ? 'producto' : 'productos'}` : 'Carrito');
 
 const footer = `<footer class="site-footer">
 <div class="container footer-grid">
 <div><p class="footer-brand">DevoShop</p><p>Muebles de diseño para vivir mejor. Compra como invitado, sin registro.</p></div>
 <div><p class="footer-title">Comprar</p><ul>${CATEGORIES.slice(0, 4).map((c) => `<li><a href="/categoria/${c.slug}">${c.name}</a></li>`).join('')}</ul></div>
 <div><p class="footer-title">Complementos</p><ul>${CATEGORIES.slice(4).map((c) => `<li><a href="/categoria/${c.slug}">${c.name}</a></li>`).join('')}</ul></div>
-<div><p class="footer-title">Ayuda</p><ul><li><a href="/carrito">Tu carrito</a></li><li>Precios con IVA incluido</li><li>Pago simulado, sin tarjeta</li></ul></div>
+<div><p class="footer-title">Ayuda</p><ul><li><a href="/carrito">Tu carrito</a></li><li>Envío gratis desde 500 €</li><li>Precios con IVA incluido</li><li>Pago simulado, sin tarjeta</li></ul></div>
 </div>
 <p class="container footer-legal">© 2026 DevoShop · Tienda creada en el hackathon Devo Team</p>
 </footer>`;
 
-export function layout({ title, description, body, activeCategory, query }) {
+export function layout({ title, description, body, activeCategory, query, cartCount = 0 }) {
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -61,7 +68,7 @@ export function layout({ title, description, body, activeCategory, query }) {
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
-${header(activeCategory, query)}
+${header(activeCategory, query, cartCount)}
 <main>
 ${body}
 </main>
@@ -76,7 +83,7 @@ const priceHtml = (p, cls = 'card-price') => `<span class="${cls}">${formatPrice
 function productCard(p) {
   return `<li class="card">
 <a href="/producto/${encodeURIComponent(p.sku)}">
-<span class="card-media"><img src="${productImage(p)}" alt="${escapeHtml(p.name)}" width="400" height="300" loading="lazy"></span>
+<span class="card-media"><img src="${productImage(p)}" alt="${escapeHtml(p.name)}" width="400" height="300" loading="lazy">${p.price >= ENVIO_GRATIS ? '<span class="badge badge-ok">Envío gratis</span>' : ''}</span>
 <span class="card-name">${escapeHtml(p.name)}</span>
 <span class="card-meta">${escapeHtml(getCategory(p.category)?.name ?? '')} · ${p.width_cm} cm${p.seats ? ` · ${p.seats} ${p.seats === 1 ? 'plaza' : 'plazas'}` : ''} · ${escapeHtml(p.color)} · ${escapeHtml(p.material)}</span>
 ${priceHtml(p)}
@@ -87,17 +94,19 @@ ${priceHtml(p)}
 const productGrid = (products) => `<ul class="grid">${products.map(productCard).join('')}</ul>`;
 
 function packCard(pack) {
-  const list = pack.lines.map((l) => `<li>${l.quantity > 1 ? `${l.quantity} × ` : ''}${escapeHtml(l.product.name)}</li>`).join('');
+  const list = pack.lines.map((l) => `<li><span>${l.quantity > 1 ? `${l.quantity} × ` : ''}<a href="/producto/${encodeURIComponent(l.product.sku)}">${escapeHtml(l.product.name)}</a></span><span>${formatPrice(Math.round(l.product.price * 100) * l.quantity / 100)}</span></li>`).join('');
+  const units = pack.lines.reduce((s, l) => s + l.quantity, 0);
+  const perk = pack.total >= MONTAJE_GRATIS ? ' · envío y montaje gratis' : pack.total >= ENVIO_GRATIS ? ' · envío gratis' : '';
   return `<li class="pack">
 <img src="/static/img/${pack.img}.svg" alt="${escapeHtml(pack.name)}" width="400" height="300" loading="lazy">
 <div class="pack-body">
 <h3>${escapeHtml(pack.name)}</h3>
 <p class="muted">${escapeHtml(pack.description)}</p>
 <ul class="pack-items">${list}</ul>
-<p class="pack-total">${formatPrice(pack.total)} <span class="muted">${pack.lines.length} productos · IVA incluido</span></p>
+<p class="pack-total">${formatPrice(pack.total)} <span class="muted">${units} productos a su precio de catálogo · IVA incluido${perk}</span></p>
 <form action="/carrito/anadir-pack" method="post">
 <input type="hidden" name="pack" value="${escapeHtml(pack.id)}">
-<button class="btn btn-block" type="submit">Añadir el pack al carrito</button>
+<button class="btn btn-block" type="submit">Añadir el ${escapeHtml(pack.name)} al carrito, ${formatPrice(pack.total)}</button>
 </form>
 </div>
 </li>`;
@@ -105,16 +114,17 @@ function packCard(pack) {
 
 const packGrid = (packs) => `<ul class="packs">${packs.map(packCard).join('')}</ul>`;
 
-export function renderHome() {
+export function renderHome(o = {}) {
   const tiles = CATEGORIES.map((c) => `<li><a class="tile" href="/categoria/${c.slug}">
 <img src="/static/img/${c.img}.svg" alt="${c.name}" width="400" height="300" loading="lazy"><span>${c.name}</span></a></li>`).join('');
   return layout({
     title: 'DevoShop | Muebles de diseño y decoración para tu hogar',
     description: 'Sofás, mesas, camas, iluminación y textil de diseño. Compra como invitado, sin registro y con precios con IVA incluido.',
+    cartCount: o.cartCount,
     body: `<section class="hero">
 <img class="hero-img" src="/static/img/hero.svg" alt="Salón con sofá gris, lámpara de pie y alfombra" width="1600" height="800">
 <div class="hero-text container">
-<p class="eyebrow">Nueva colección</p>
+<p class="eyebrow">Envío gratis desde 500 €</p>
 <h1>Muebles de diseño para vivir mejor</h1>
 <p>Piezas atemporales para el salón, el comedor y el dormitorio. Compra como invitado en pocos pasos.</p>
 <a class="btn" href="/categoria/sofa">Ver sofás</a>
@@ -123,7 +133,7 @@ export function renderHome() {
 <ul class="usp container">
 <li><strong>Sin registro</strong> Compra como invitado</li>
 <li><strong>Precios claros</strong> IVA incluido en todo</li>
-<li><strong>Pago en un clic</strong> Sin datos de tarjeta</li>
+<li><strong>Envío gratis</strong> En pedidos desde 500 €</li>
 <li><strong>Montaje gratis</strong> En pedidos desde 1.500 €</li>
 </ul>
 <section class="container section">
@@ -153,8 +163,9 @@ ${productGrid(featuredProducts())}
   });
 }
 
-export function renderCategory(category, products) {
+export function renderCategory(category, products, o = {}) {
   return layout({
+    cartCount: o.cartCount,
     title: `${category.name} de diseño | DevoShop`,
     description: `Descubre nuestra selección de ${category.name.toLowerCase()} de diseño con precios con IVA incluido. Compra como invitado.`,
     activeCategory: category.slug,
@@ -167,12 +178,13 @@ ${products.length ? productGrid(products) : '<p>No hay productos en esta categor
   });
 }
 
-export function renderOffers() {
+export function renderBestSellers(o = {}) {
   const top = bestSellers(12);
   return layout({
+    cartCount: o.cartCount,
     title: 'Los muebles más vendidos | DevoShop',
     description: 'Los sofás, camas, mesas, lámparas y textiles que más compran nuestros clientes. Precios con IVA incluido.',
-    activeCategory: 'ofertas',
+    activeCategory: 'mas-vendidos',
     body: `<div class="container section">
 <nav class="breadcrumb" aria-label="Ruta"><a href="/">Inicio</a> / <span>Más vendidos</span></nav>
 <h1 class="page-title">Más vendidos</h1>
@@ -182,8 +194,32 @@ ${productGrid(top)}
   });
 }
 
-export function renderPacks() {
+/** Real offers from condiciones-de-venta.md: free shipping from 500 €, free assembly from 1.500 €. */
+export function renderOffers(o = {}) {
+  const freeShipping = allProducts().filter((p) => p.price >= ENVIO_GRATIS).sort((a, b) => b.price - a.price);
   return layout({
+    title: 'Ofertas: envío y montaje gratis | DevoShop',
+    description: 'Envío gratis en pedidos desde 500 € y montaje gratis desde 1.500 €. Precios con IVA incluido y compra como invitado.',
+    activeCategory: 'ofertas',
+    cartCount: o.cartCount,
+    body: `<div class="container section">
+<nav class="breadcrumb" aria-label="Ruta"><a href="/">Inicio</a> / <span>Ofertas</span></nav>
+<h1 class="page-title">Ofertas</h1>
+<ul class="offer-banner">
+<li><strong>Envío gratis</strong> en pedidos desde 500 € (si no, 49 €).</li>
+<li><strong>Montaje gratis</strong> en pedidos desde 1.500 € (si no, 39 €).</li>
+</ul>
+<h2 class="section-title">Packs con envío gratis</h2>
+${packGrid(getPacks())}
+<h2 class="section-title section-gap">Productos con envío gratis</h2>
+${productGrid(freeShipping)}
+</div>`,
+  });
+}
+
+export function renderPacks(o = {}) {
+  return layout({
+    cartCount: o.cartCount,
     title: 'Packs para amueblar tu casa | DevoShop',
     description: 'Packs de salón, dormitorio y comedor con todo lo necesario. Añade el pack entero al carrito de una vez.',
     activeCategory: 'packs',
@@ -196,9 +232,10 @@ ${packGrid(getPacks())}
   });
 }
 
-export function renderSearch(query, products) {
+export function renderSearch(query, products, o = {}) {
   const q = escapeHtml(query);
   return layout({
+    cartCount: o.cartCount,
     title: query ? `Resultados para «${query}» | DevoShop` : 'Buscar productos | DevoShop tienda de muebles',
     description: 'Busca sofás, mesas, camas, lámparas y textil en el catálogo de DevoShop.',
     query,
@@ -212,13 +249,20 @@ ${products.length
   });
 }
 
-export function renderProduct(p) {
+export function renderProduct(p, o = {}) {
   const category = getCategory(p.category);
+  const isMattress = p.category === 'colchon';
   const specs = [
+    ['Precio', `${formatPrice(p.price)} (IVA incluido)`],
     ['Medidas', `${p.width_cm} x ${p.depth_cm} x ${p.height_cm} cm (ancho x fondo x alto)`],
     p.seats ? ['Plazas', p.seats] : null,
     ['Color', p.color],
     ['Material', p.material],
+    ['Entrega', 'De 3 a 5 días laborables en la península; de 7 a 10 en Baleares. No enviamos a Canarias, Ceuta ni Melilla.'],
+    ['Envío', 'Gratis en pedidos desde 500 €; si no, 49 €.'],
+    ['Montaje', 'A domicilio por 39 € por pedido; gratis desde 1.500 €.'],
+    ['Garantía', isMattress ? '10 años' : '3 años'],
+    ['Devoluciones', isMattress ? '100 noches de prueba: si no te convence, lo recogemos sin coste.' : '30 días naturales para devolver cualquier producto sin usar.'],
     ['Referencia', p.sku],
   ].filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join('');
   const options = [1, 2, 3, 4, 5].map((n) => `<option value="${n}">${n}</option>`).join('');
@@ -227,6 +271,7 @@ export function renderProduct(p) {
     title: `${p.name} | DevoShop`,
     description: `${p.name}: ${p.description}`.slice(0, 160),
     activeCategory: p.category,
+    cartCount: o.cartCount,
     body: `<div class="container section">
 <nav class="breadcrumb" aria-label="Ruta"><a href="/">Inicio</a> / <a href="/categoria/${category.slug}">${category.name}</a> / <span>${escapeHtml(p.name)}</span></nav>
 <div class="product">
@@ -240,6 +285,7 @@ export function renderProduct(p) {
 <select id="cantidad" name="cantidad">${options}</select>
 <button class="btn btn-block" type="submit">Añadir al carrito, ${formatPrice(p.price)}</button>
 </form>
+<p class="ship-note">${p.price >= ENVIO_GRATIS ? '✓ Este producto tiene envío gratis.' : 'Envío gratis en pedidos desde 500 €.'} Montaje gratis desde 1.500 €.</p>
 ${complementForms(complements)}
 <p>${escapeHtml(p.description)}</p>
 <dl class="specs">${specs}</dl>
@@ -266,9 +312,6 @@ function complementForms(items, heading = 'Se compra junto con') {
   return `<section class="complements" aria-label="${heading}"><h2 class="section-title">${heading}</h2><ul class="complement-list">${li}</ul></section>`;
 }
 
-const MONTAJE_GRATIS = 1500;
-const ENVIO_GRATIS = 500;
-
 function cartLines(r, editable) {
   return `<ul class="cart-lines">${r.items.map((l) => `<li class="cart-line" data-linea="${escapeHtml(l.product.sku)}" data-cantidad="${l.quantity}">
 <img src="${productImage(l.product)}" alt="${escapeHtml(l.product.name)}" width="80" height="60" loading="lazy">
@@ -290,16 +333,38 @@ function perks(total) {
   return `<ul class="perks">${out.map((t) => `<li>${t}</li>`).join('')}</ul>`;
 }
 
-export function renderCart(r) {
-  const cross = r.items.length
-    ? complementsFor(r.items[0].product, 6).filter((c) => !r.items.some((l) => l.product.sku === c.sku)).slice(0, 3)
-    : [];
+/** The agent's budget: a suggestion that pushes the order over it would zero the spend score. */
+const PRESUPUESTO_MAX = 4000;
+
+/**
+ * Cross-sell for the whole cart: complements of every line (most expensive first), never
+ * already in the cart and never taking the total over 4.000 €.
+ */
+function cartComplements(r, limit = 3) {
+  const inCart = new Set(r.items.map((l) => l.product.sku));
+  const totalCents = Math.round(r.total * 100);
+  const out = [];
+  for (const line of [...r.items].sort((a, b) => b.product.price - a.product.price)) {
+    for (const c of complementsFor(line.product, 6)) {
+      if (inCart.has(c.sku) || out.some((x) => x.sku === c.sku)) continue;
+      if (totalCents + Math.round(c.price * 100) > PRESUPUESTO_MAX * 100) continue;
+      out.push(c);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
+
+export function renderCart(r, o = {}) {
+  const cross = r.items.length ? cartComplements(r) : [];
   return layout({
+    cartCount: o.cartCount,
     title: 'Tu carrito de compra | DevoShop',
     description: 'Revisa los productos de tu carrito y finaliza la compra como invitado, sin registro.',
     body: `<div class="container section">
+${o.added ? `<p class="notice" role="status">✓ Añadido al carrito: ${escapeHtml(o.added)}</p>` : ''}
 <h1 class="page-title">Tu carrito</h1>
-${r.items.length ? `<p><a class="btn" href="/checkout">Finalizar compra como invitado</a></p>
+${r.items.length ? `<div class="cart-top"><p><strong>Total: ${formatPrice(r.total)}</strong> · ${r.unidades} ${r.unidades === 1 ? 'producto' : 'productos'}</p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></div>
 ${cartLines(r, true)}
 ${perks(r.total)}
 <p><a class="btn btn-block" href="/checkout">Finalizar compra como invitado</a></p>
@@ -315,8 +380,9 @@ const field = (id, label, type, value, error, autocomplete) => `<p class="field"
 ${error ? `<span class="field-error" id="${id}-error">${escapeHtml(error)}</span>` : ''}
 </p>`;
 
-export function renderCheckout(r, orderId, form, errores, aviso = '') {
+export function renderCheckout(r, orderId, form, errores, aviso = '', o = {}) {
   return layout({
+    cartCount: o.cartCount,
     title: 'Finalizar compra como invitado | DevoShop',
     description: 'Escribe tus datos de envío y confirma el pedido. Pago simulado, sin datos de tarjeta.',
     body: `<div class="container section">

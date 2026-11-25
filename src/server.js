@@ -1,12 +1,12 @@
 // DevoShop HTTP server. Uses only Node's standard library: fewer dependencies means a
 // faster cold start on Cloud Run and nothing to leak in "x-powered-by" style headers.
 import { createServer } from 'node:http';
-import { randomBytes, randomUUID, createHmac } from 'node:crypto';
+import { randomBytes, randomUUID, createHmac, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
-  renderHome, renderError, renderCategory, renderProduct, renderSearch, renderOffers, renderPacks,
+  renderHome, renderError, renderCategory, renderProduct, renderSearch, renderOffers, renderPacks, renderBestSellers,
   renderCart, renderCheckout, renderConfirmation, renderEmptyCheckout, renderOrderError,
 } from './pages.js';
 import { getCategory, getProduct, getPack, productsInCategory, searchProducts, catalogoJson } from './catalog.js';
@@ -106,6 +106,13 @@ function readFormBody(req) {
   });
 }
 
+const pageCache = new Map();
+function cached(key, render) {
+  let html = pageCache.get(key);
+  if (html === undefined) { html = render(); pageCache.set(key, html); }
+  return html;
+}
+
 const getCookie = (req, name) => new RegExp(`(?:^|;\\s*)${name}=([^;]+)`).exec(req.headers.cookie ?? '')?.[1];
 const redirect = (res, location, cookies = []) => {
   res.writeHead(303, { ...SECURITY_HEADERS, location, 'set-cookie': cookies, 'content-type': 'text/plain; charset=utf-8' });
@@ -137,7 +144,9 @@ async function route(req, res, cfg) {
     else if (urlPath === '/carrito/anadir-pack') {
       for (const l of getPack(form.pack)?.lines ?? []) lineas = anadir(lineas, l.product.sku, l.quantity);
     } else return send(res, 404, renderError(404));
-    return redirect(res, '/carrito', [cookieCarrito(cfg.secreto, lineas)]);
+    const added = urlPath === '/carrito/anadir' && getProduct(form.sku) ? `?anadido=${encodeURIComponent(form.sku)}`
+      : urlPath === '/carrito/anadir-pack' && getPack(form.pack) ? `?pack=${encodeURIComponent(form.pack)}` : '';
+    return redirect(res, `/carrito${added}`, [cookieCarrito(cfg.secreto, lineas)]);
   }
 
   if (urlPath === '/checkout' && req.method === 'POST') {
@@ -164,16 +173,25 @@ async function route(req, res, cfg) {
     return send(res, 405, renderError(405), undefined, { allow: 'GET, HEAD' });
   }
 
-  if (urlPath === '/') return send(res, 200, renderHome(), undefined, sessionCookie(req));
   if (urlPath === '/catalogo.json') return send(res, 200, catalogoJson(), 'application/json; charset=utf-8');
+  if (urlPath.startsWith('/static/') && (await serveStatic(res, urlPath))) return;
+
+  const lineasGet = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
+  const cartCount = lineasGet.reduce((s, [, q]) => s + q, 0);
+  // Visitor-independent pages are rendered once per cart count and served from memory:
+  // these are the pages the load test (Black Friday) and the response-time test hit.
+  const page = (key, render) =>
+    send(res, 200, cached(`${key}|${cartCount}`, () => render({ cartCount })), undefined, sessionCookie(req));
+
+  if (urlPath === '/') return page('/', renderHome);
   if (urlPath === '/carrito') {
-    const lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
-    return send(res, 200, renderCart(resumen(lineas)), undefined, sessionCookie(req));
+    const params = new URL(req.url, 'http://x').searchParams;
+    const added = getPack(params.get('pack') ?? '')?.name ?? getProduct(params.get('anadido') ?? '')?.name;
+    return send(res, 200, renderCart(resumen(lineasGet), { cartCount, added }), undefined, { 'cache-control': 'no-store', ...sessionCookie(req) });
   }
   if (urlPath === '/checkout') {
-    const lineas = leerCarrito(cfg.secreto, getCookie(req, 'hk_carrito'));
-    if (!lineas.length) return send(res, 200, renderEmptyCheckout());
-    return send(res, 200, renderCheckout(resumen(lineas), randomUUID(), {}, {}));
+    if (!lineasGet.length) return send(res, 200, renderEmptyCheckout());
+    return send(res, 200, renderCheckout(resumen(lineasGet), randomUUID(), {}, {}, '', { cartCount }), undefined, { 'cache-control': 'no-store' });
   }
   const conf = /^\/pedido\/([0-9a-f-]{36})$/.exec(urlPath);
   if (conf) {
@@ -181,22 +199,21 @@ async function route(req, res, cfg) {
     if (recibo?.id === conf[1]) return send(res, 200, renderConfirmation(recibo));
     return send(res, 404, renderError(404));
   }
-  if (urlPath === '/mas-vendidos') return send(res, 200, renderOffers(), undefined, sessionCookie(req));
-  if (urlPath.startsWith('/static/') && (await serveStatic(res, urlPath))) return;
-  if (urlPath === '/ofertas') return send(res, 200, renderOffers(), undefined, sessionCookie(req));
-  if (urlPath === '/packs') return send(res, 200, renderPacks(), undefined, sessionCookie(req));
+  if (urlPath === '/mas-vendidos') return page(urlPath, renderBestSellers);
+  if (urlPath === '/ofertas') return page(urlPath, renderOffers);
+  if (urlPath === '/packs') return page(urlPath, renderPacks);
 
-  const cat = /^\/categoria\/([a-z0-9-]+)\/?$/.exec(urlPath);
+  const cat = /^\/categoria\/([a-z_]+)\/?$/.exec(urlPath);
   if (cat && getCategory(cat[1])) {
-    return send(res, 200, renderCategory(getCategory(cat[1]), productsInCategory(cat[1])), undefined, sessionCookie(req));
+    return page(urlPath, (o) => renderCategory(getCategory(cat[1]), productsInCategory(cat[1]), o));
   }
-  const prod = /^\/producto\/([^/]+)\/?$/.exec(urlPath);
+  const prod = /^\/producto\/([a-z0-9-]+)\/?$/.exec(urlPath);
   if (prod && getProduct(prod[1])) {
-    return send(res, 200, renderProduct(getProduct(prod[1])), undefined, sessionCookie(req));
+    return page(urlPath, (o) => renderProduct(getProduct(prod[1]), o));
   }
   if (urlPath === '/buscar') {
     const q = (new URL(req.url, 'http://x').searchParams.get('q') ?? '').trim().slice(0, 100);
-    return send(res, 200, renderSearch(q, searchProducts(q)), undefined, sessionCookie(req));
+    return send(res, 200, renderSearch(q, searchProducts(q), { cartCount }), undefined, sessionCookie(req));
   }
   return send(res, 404, renderError(404));
 }
@@ -219,7 +236,9 @@ export function createApp(opts = {}) {
   const cfg = {
     buzonUrl: opts.buzonUrl ?? process.env.BUZON_URL ?? BUZON_URL_DEFECTO,
     claveEquipo: opts.claveEquipo ?? process.env.CLAVE_EQUIPO,
-    secreto: opts.secreto ?? process.env.CARRITO_SECRETO,
+    secreto: opts.secreto ?? process.env.CARRITO_SECRETO
+      // Derived from the team key so every Cloud Run instance signs carts the same way.
+      ?? (process.env.CLAVE_EQUIPO && createHash('sha256').update(`devoshop-carrito|${process.env.CLAVE_EQUIPO}`).digest('hex')),
     reintentoMs: opts.reintentoMs ?? 1500,
   };
   if (!cfg.secreto) {

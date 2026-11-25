@@ -296,3 +296,42 @@ test('assistant: resists role injection. KILLS: assistant leaving its role', asy
   assert.doesNotMatch(r, /pirata/i);
   assert.match(r, /tienda|DevoShop|productos/i);
 });
+
+test('cart suggestions never push the total over 4.000 €. KILLS: spend counted as 0 for going over budget', async () => {
+  const { renderCart } = await import('../src/pages.js');
+  const { getProduct } = await import('../src/catalog.js');
+  const items = [['sofa-aarhus', 2], ['mesa-de-comedor-ebro-extensible', 1], ['aparador-3-puertas', 1], ['juego-de-sabanas-150', 1], ['flexo-led-regulable', 1]].map(([sku, quantity]) => ({ product: getProduct(sku), quantity }));
+  const total = items.reduce((s, l) => s + Math.round(l.product.price * 100) * l.quantity, 0) / 100; // 3.980 €: only complements of 20 € or less would fit
+  const html = renderCart({ items, total, unidades: 3 });
+  for (const m of html.matchAll(/Añadir [^<]*, ([\d.]+,\d\d)\s€<\/button>/g)) {
+    const price = Number(m[1].replace('.', '').replace(',', '.'));
+    assert.ok(total + price <= 4000, `suggestion of ${price} € on a ${total} € cart`);
+  }
+});
+
+test('cart secret derives from CLAVE_EQUIPO when CARRITO_SECRETO is missing. KILLS: carts lost between Cloud Run instances', async () => {
+  const { createApp } = await import('../src/server.js');
+  const saved = { c: process.env.CLAVE_EQUIPO, s: process.env.CARRITO_SECRETO };
+  process.env.CLAVE_EQUIPO = 'clave-de-prueba'; delete process.env.CARRITO_SECRETO;
+  const a = createApp(); const b = createApp();
+  await Promise.all([a, b].map((s) => new Promise((r) => s.listen(0, '127.0.0.1', r))));
+  try {
+    const add = await fetch(`http://127.0.0.1:${a.address().port}/carrito/anadir`, {
+      method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'sku=sofa-nordico',
+    });
+    const cookie = add.headers.getSetCookie().find((c) => c.startsWith('hk_carrito=')).split(';')[0];
+    assert.match(add.headers.get('location'), /^\/carrito\?anadido=sofa-nordico$/);
+    const html = await (await fetch(`http://127.0.0.1:${b.address().port}/carrito?anadido=sofa-nordico`, { headers: { cookie } })).text();
+    assert.match(html, /Añadido al carrito: Sofá Nórdico/);
+    assert.match(html, /aria-label="Carrito, 1 producto"/);
+  } finally {
+    await Promise.all([a, b].map((s) => new Promise((r) => s.close(r))));
+    if (saved.c === undefined) delete process.env.CLAVE_EQUIPO; else process.env.CLAVE_EQUIPO = saved.c;
+    if (saved.s !== undefined) process.env.CARRITO_SECRETO = saved.s;
+  }
+});
+
+test('a pack between 3.000 and 4.000 € exists for the spend ranking. KILLS: no high, justifiable basket', async () => {
+  const { getPacks } = await import('../src/catalog.js');
+  assert.ok(getPacks().some((p) => p.total >= 3000 && p.total < 4000));
+});

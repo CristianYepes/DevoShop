@@ -115,10 +115,11 @@ test('offers and packs. KILLS: pack total not equal to the sum of its catalog li
   assert.doesNotMatch(best, /<del>/);
   assert.match(best, /href="\/producto\//);
   for (const pack of getPacks()) assert.ok(pack.total < 4000, `${pack.id} exceeds the agent budget`);
-  assert.match(await (await get('/packs')).text(), /Añadir el pack al carrito/);
+  assert.match(await (await get('/packs')).text(), /Añadir el Pack [^<]+ al carrito, [0-9.]+,00/);
+  assert.doesNotMatch(await (await get('/ofertas')).text(), /<del>/);
 });
 
-for (const page of ['/ofertas', '/packs', '/', '/categoria/sofas', '/producto/demo-sofa-3p', '/buscar?q=sofa', '/buscar?q=zzz', '/no-existe']) {
+for (const page of ['/ofertas', '/packs', '/', '/categoria/sofa', '/producto/sofa-nordico', '/mas-vendidos', '/carrito', '/checkout', '/buscar?q=sofa', '/buscar?q=zzz', '/no-existe']) {
   test(`web quality on ${page}. KILLS: failing any of the quality checks`, async () => {
     assertWebQuality(await (await get(page)).text());
   });
