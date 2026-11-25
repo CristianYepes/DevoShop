@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asistente de tienda | DevoShop</title>
+<meta name="description" content="Consulta al asistente de DevoShop sobre productos, precios, envíos, montaje, devoluciones y garantía.">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="/">DevoShop</a>
+</header>
+<main>
+  <h1>Asistente de la tienda DevoShop</h1>
+  <p>Pregunta por nuestros muebles, precios con IVA, medidas o condiciones de envío, montaje, devoluciones, garantía y pago.</p>
+  <form id="assistant-form" class="assistant-form" action="/api/asistente" method="post">
+    <label for="pregunta">Tu consulta</label>
+    <div class="input-row">
+      <input id="pregunta" name="pregunta" type="text" required maxlength="500" placeholder="Ej.: ¿Cuánto cuesta el envío o el sofá de 3 plazas?">
+      <button id="submit-btn" type="submit">Preguntar</button>
+    </div>
+  </form>
+  <section id="respuesta-box" class="respuesta-box" aria-live="polite" hidden>
+    <h2>Respuesta</h2>
+    <p id="respuesta-texto"></p>
+  </section>
+</main>
+<footer class="site-footer">
+  <p>DevoShop · Asistente virtual de catálogo y condiciones de venta</p>
+</footer>
+<script src="/static/app.js" defer></script>
+</body>
+</html>
