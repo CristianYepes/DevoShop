@@ -103,8 +103,49 @@ test('error pages show no traces or internal paths. KILLS: stack trace leak', as
   }
 });
 
-test('home page web quality. KILLS: failing any of the quality checks', async () => {
-  const html = await (await get('/')).text();
+test('offers and packs. KILLS: pack total not equal to the sum of its catalog lines', async () => {
+  const { getPacks } = await import('../src/catalog.js');
+  for (const pack of getPacks()) {
+    const cents = pack.lines.reduce((s, l) => s + l.quantity * Math.round(l.product.price * 100), 0);
+    assert.equal(Math.round(pack.total * 100), cents, pack.id);
+    assert.ok(pack.lines.length === pack.items.length, `${pack.id} references an unknown sku`);
+  }
+  assert.match(await (await get('/ofertas')).text(), /<del>/);
+  assert.match(await (await get('/packs')).text(), /Añadir el pack al carrito/);
+});
+
+for (const page of ['/ofertas', '/packs', '/', '/categoria/sofas', '/producto/demo-sofa-3p', '/buscar?q=sofa', '/buscar?q=zzz', '/no-existe']) {
+  test(`web quality on ${page}. KILLS: failing any of the quality checks`, async () => {
+    assertWebQuality(await (await get(page)).text());
+  });
+}
+
+test('store pages respond and unknown ones 404. KILLS: broken category, product or search routes', async () => {
+  assert.equal((await get('/categoria/sofas')).status, 200);
+  assert.equal((await get('/producto/demo-sofa-3p')).status, 200);
+  assert.equal((await get('/buscar?q=l%C3%A1mpara')).status, 200);
+  assert.equal((await get('/categoria/no-existe')).status, 404);
+  assert.equal((await get('/producto/no-existe')).status, 404);
+});
+
+test('product page shows name, price and add-to-cart. KILLS: agent cannot buy from the product page', async () => {
+  const html = await (await get('/producto/demo-sofa-3p')).text();
+  assert.match(html, /Sofá 3 plazas Nórdico/);
+  assert.match(html, /899,00\s€/);
+  assert.match(html, /<button[^>]*type="submit"[^>]*>Añadir al carrito<\/button>/);
+});
+
+test('search finds products ignoring accents. KILLS: "lampara" not matching "Lámpara"', async () => {
+  const html = await (await get('/buscar?q=lampara')).text();
+  assert.match(html, /Lámpara de pie Arco/);
+});
+
+test('search query is escaped. KILLS: reflected XSS through the search box', async () => {
+  const html = await (await get('/buscar?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E')).text();
+  assert.doesNotMatch(html, /<script>alert/);
+});
+
+function assertWebQuality(html) {
   assert.match(html, /<html[^>]+lang="es"/, 'lang declared');
   const title = /<title>([^<]*)<\/title>/.exec(html)?.[1] ?? '';
   assert.ok(title.trim().length >= 20, `title >= 20 chars, got "${title}"`);
@@ -115,7 +156,13 @@ test('home page web quality. KILLS: failing any of the quality checks', async ()
   for (const img of html.match(/<img\b[^>]*>/g) ?? []) assert.match(img, /\balt="[^"]+"/, `img without alt: ${img}`);
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>/, 'no inline scripts (CSP)');
   assert.doesNotMatch(html, /\sstyle="/, 'no inline style attributes');
-});
+  // Every input/select/textarea (except hidden) needs a <label for="id">.
+  for (const field of html.match(/<(input|select|textarea)\b[^>]*>/g) ?? []) {
+    if (/type="hidden"/.test(field)) continue;
+    const id = /\bid="([^"]+)"/.exec(field)?.[1];
+    assert.ok(id && html.includes(`<label for="${id}"`), `field without label: ${field}`);
+  }
+}
 
 test('static assets served with correct type. KILLS: CSS/JS blocked by nosniff', async () => {
   const css = await get('/static/styles.css');
