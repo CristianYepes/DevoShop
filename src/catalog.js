@@ -153,6 +153,11 @@ export function searchProducts(query) {
 
 const PACKS = [
   {
+    id: 'salon-comedor', name: 'Pack Salón y comedor completo', img: 'sofa',
+    description: 'Todo para un salón-comedor de 25 m²: sofá de piel de 3 plazas, sillón de lectura, mesa extensible con 4 sillas, aparador, estantería, iluminación y textiles.',
+    items: [['sofa-aarhus', 1], ['sillon-viena', 1], ['mesa-de-comedor-ebro-extensible', 1], ['pack-4-sillas-de-comedor-roble', 1], ['aparador-3-puertas', 1], ['estanteria-libreria-5-baldas', 1], ['lampara-de-pie-arco', 1], ['lampara-de-techo-trenzada', 1], ['alfombra-de-salon-160x230', 1], ['pack-4-cojines-decorativos', 1], ['manta-para-sofa', 1]],
+  },
+  {
     id: 'salon-completo', name: 'Pack Salón completo', img: 'sofa',
     description: 'Todo para un salón de 20 m²: sofá de piel de tres plazas, sillón de lectura, lámpara de pie, lámpara de techo, alfombra de lana, cojines, manta, estantería y aparador.',
     items: [['sofa-aarhus', 1], ['sillon-viena', 1], ['lampara-de-pie-arco', 1], ['lampara-de-techo-trenzada', 1], ['alfombra-de-salon-160x230', 1], ['pack-4-cojines-decorativos', 1], ['manta-para-sofa', 1], ['estanteria-libreria-5-baldas', 1], ['aparador-3-puertas', 1]],
