@@ -39,6 +39,7 @@ const ERROR_TEXT = {
   405: 'Método no permitido',
   413: 'Petición demasiado grande',
   500: 'Error interno',
+  503: 'Servicio temporalmente no disponible',
 };
 
 export function renderError(status) {

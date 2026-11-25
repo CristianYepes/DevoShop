@@ -22,6 +22,8 @@ An online furniture and home store built from scratch during the **Devo Team hac
 
 When an order is completed, the **server** sends it to the hackathon order mailbox in the v1.0 JSON format **before** the confirmation page is shown.
 
+`GET /catalogo.json` reads the `catalogo_json` PostgreSQL view and caches it per instance. `src/order.js` builds orders from the clean catalog, and `src/order-mailbox.js` sends them to the mailbox; checkout integration and persistent checkout storage are still pending. Network errors and invalid mailbox confirmations leave the delivery status uncertain and must not be treated as a successful order or blindly retried.
+
 ## Catalog rules
 
 - A product listed by both suppliers is sold only once, using the most recent update.
@@ -43,6 +45,9 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 |---|---|
 | `PORT` | Port to listen on (Cloud Run sets it to `8080`) |
 | `CLAVE_EQUIPO` | Team key for the order mailbox. Set it in Cloud Run and never commit it |
+| `DATABASE_URL` | PostgreSQL connection for the catalog. The Docker image sets this to its local PostgreSQL instance |
+
+The bundled PostgreSQL instance is ephemeral and independent per Cloud Run instance. It is suitable for the read-only catalog, not for persistent orders or distributed checkout idempotency. See `db/README.md`.
 
 ## Deploy
 

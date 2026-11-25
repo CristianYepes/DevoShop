@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { renderHome, renderError } from './pages.js';
+import { readCatalog } from './catalog.js';
 
 const PUBLIC_DIR = fileURLToPath(new URL('../public/', import.meta.url));
 const MAX_BODY_BYTES = 16 * 1024;
@@ -83,7 +84,7 @@ function readJsonBody(req) {
   });
 }
 
-async function route(req, res) {
+async function route(req, res, loadCatalog) {
   let urlPath;
   try {
     urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
@@ -105,15 +106,16 @@ async function route(req, res) {
     return send(res, 405, renderError(405), undefined, { allow: 'GET, HEAD' });
   }
 
+  if (urlPath === '/catalogo.json') return sendJson(res, 200, await loadCatalog());
   if (urlPath === '/') return send(res, 200, renderHome(), undefined, sessionCookie(req));
   if (urlPath.startsWith('/static/') && (await serveStatic(res, urlPath))) return;
   return send(res, 404, renderError(404));
 }
 
-export function createApp() {
+export function createApp({ loadCatalog = readCatalog } = {}) {
   return createServer(async (req, res) => {
     try {
-      await route(req, res);
+      await route(req, res, loadCatalog);
     } catch (err) {
       const status = err.status ?? 500;
       // Log the detail server-side (Cloud Run logs); the client only gets a generic page.
