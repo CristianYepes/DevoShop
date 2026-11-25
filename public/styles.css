@@ -232,7 +232,7 @@ del { color: var(--muted); font-weight: 400; font-size: .9em; }
   .cart-line, .complement { grid-template-columns: 72px 1fr; }
   .cart-line img, .complement img { width: 72px; height: 54px; }
 }
-.cart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 8px 0 0; }
+.cart-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 8px 0 28px; }
 .cart-top p { margin: 0; }
 .cart-top .btn-block { width: auto; }
 @media (max-width: 480px) { .cart-top .btn-block { width: 100%; } }
