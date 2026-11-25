@@ -5,7 +5,8 @@ The data lives in a **BigQuery dataset** (`devoshop`, region `europe-southwest1`
 
 ```sh
 gcloud services enable bigquery.googleapis.com
-bq query --use_legacy_sql=false --location=europe-southwest1 < db/init.sql
+bq --location=europe-southwest1 mk --dataset devoshop   # once; skip if it exists
+bq --location=europe-southwest1 query --use_legacy_sql=false < db/init.sql
 ```
 
 You can also paste `init.sql` into the BigQuery console and run it as one script.
