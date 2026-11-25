@@ -335,3 +335,13 @@ test('a pack between 3.000 and 4.000 € exists for the spend ranking. KILLS: no
   const { getPacks } = await import('../src/catalog.js');
   assert.ok(getPacks().some((p) => p.total >= 3000 && p.total < 4000));
 });
+
+test('cart quantity is a dropdown that submits on change, no Actualizar button. KILLS: extra step to update the cart', async () => {
+  const { renderCart } = await import('../src/pages.js');
+  const { getProduct } = await import('../src/catalog.js');
+  const html = renderCart({ items: [{ product: getProduct('sofa-nordico'), quantity: 2 }], total: 1698, unidades: 2 });
+  assert.match(html, /<select id="q-sofa-nordico" name="cantidad" data-autosubmit>/);
+  assert.match(html, /<option value="2" selected>2<\/option>/);
+  assert.match(html, /<script src="\/static\/carrito\.js" defer><\/script>/);
+  assert.doesNotMatch(html.replace(/<noscript>[\s\S]*?<\/noscript>/g, ''), />Actualizar</);
+});
