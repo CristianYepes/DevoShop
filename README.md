@@ -21,6 +21,7 @@ An online furniture and home store built from scratch during the **Devo Team hac
 | Product, cart and checkout pages | Short guest checkout flow, with no pop-ups covering the page |
 
 When an order is completed, the **server** sends it to the hackathon order mailbox in the v1.0 JSON format **before** the confirmation page is shown.
+A new order is confirmed by HTTP 200 and `{"ok":true}`; an invalid confirmation is treated as an uncertain result, not a completed purchase. A duplicate order ID response is handled as described in `src/pedido.js`.
 
 ## Catalog rules
 

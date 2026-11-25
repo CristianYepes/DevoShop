@@ -44,17 +44,30 @@ const espera = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 export async function enviarPedido(pedido, { url, clave, reintentoMs = 1500 }) {
   if (!clave) return { ok: false, status: 0, detalle: 'CLAVE_EQUIPO no configurada' };
+  const body = JSON.stringify(pedido);
+  if (Buffer.byteLength(body, 'utf8') > 64 * 1024) {
+    return { ok: false, status: 413, detalle: 'El pedido supera los 64 KB' };
+  }
   let ultimo = { ok: false, status: 0, detalle: 'sin respuesta' };
   for (let intento = 1; intento <= 3; intento++) {
     try {
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'x-clave': clave, 'content-type': 'application/json' },
-        body: JSON.stringify(pedido),
+        body,
         signal: AbortSignal.timeout(4000),
       });
       const detalle = await r.text();
-      if (r.ok) return { ok: true, status: r.status, detalle };
+      if (r.status === 200) {
+        let respuesta;
+        try {
+          respuesta = JSON.parse(detalle);
+        } catch {
+          return { ok: false, status: 200, detalle: 'Respuesta inválida del buzón; resultado incierto' };
+        }
+        if (respuesta?.ok === true) return { ok: true, status: r.status, detalle };
+        return { ok: false, status: 200, detalle: 'El buzón no confirmó el pedido; resultado incierto' };
+      }
       if (r.status === 422 && /repetid|duplicad|ya existe/i.test(detalle)) return { ok: true, status: r.status, detalle };
       ultimo = { ok: false, status: r.status, detalle };
       if (r.status !== 429 && r.status !== 502 && r.status !== 503) break;

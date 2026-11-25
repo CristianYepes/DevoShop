@@ -237,6 +237,16 @@ test('mailbox 422 (invalid): no confirmation. KILLS: fake "order confirmed"', as
   assert.doesNotMatch(await res.text(), /Pedido confirmado/);
 });
 
+test('mailbox 200 without ok:true does not confirm the purchase', async () => {
+  const go = browser();
+  await go('/carrito/anadir', { method: 'POST', form: { sku: 'sofa-bergen', cantidad: '1' } });
+  const orderId = await orderIdFrom(go);
+  buzon.respuestas.push({ status: 200, body: { ok: false } });
+  const res = await go('/checkout', { method: 'POST', form: { ...CLIENTE, order_id: orderId } });
+  assert.equal(res.status, 502);
+  assert.doesNotMatch(await res.text(), /Pedido confirmado/);
+});
+
 test('invalid email: error next to the field, no order. KILLS: invalid orders sent', async () => {
   const go = browser();
   await go('/carrito/anadir', { method: 'POST', form: { sku: 'sofa-bergen', cantidad: '1' } });
