@@ -21,8 +21,7 @@ An online furniture and home store built from scratch during the **Devo Team hac
 | Product, cart and checkout pages | Short guest checkout flow, with no pop-ups covering the page |
 
 When an order is completed, the **server** sends it to the hackathon order mailbox in the v1.0 JSON format **before** the confirmation page is shown.
-
-`GET /catalogo.json` reads the `catalogo_json` PostgreSQL view and caches it per instance. `src/order.js` builds orders from the clean catalog, and `src/order-mailbox.js` sends them to the mailbox; checkout integration and persistent checkout storage are still pending. Network errors and invalid mailbox confirmations leave the delivery status uncertain and must not be treated as a successful order or blindly retried.
+A new order is confirmed by HTTP 200 and `{"ok":true}`; an invalid confirmation is treated as an uncertain result, not a completed purchase. A duplicate order ID response is handled as described in `src/pedido.js`.
 
 ## Catalog rules
 
@@ -45,9 +44,8 @@ When an order is completed, the **server** sends it to the hackathon order mailb
 |---|---|
 | `PORT` | Port to listen on (Cloud Run sets it to `8080`) |
 | `CLAVE_EQUIPO` | Team key for the order mailbox. Set it in Cloud Run and never commit it |
-| `DATABASE_URL` | PostgreSQL connection for the catalog. The Docker image sets this to its local PostgreSQL instance |
-
-The bundled PostgreSQL instance is ephemeral and independent per Cloud Run instance. It is suitable for the read-only catalog, not for persistent orders or distributed checkout idempotency. See `db/README.md`.
+| `CARRITO_SECRETO` | Secret used to sign the cart cookie. Must be the same on every instance (Secret Manager); if missing, a random one is generated at startup |
+| `BUZON_URL` | Order mailbox URL (defaults to the hackathon mailbox) |
 
 ## Deploy
 
@@ -58,6 +56,11 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregi
 # Store the team key in Secret Manager (paste it when prompted, so it never lands in shell history)
 gcloud services enable secretmanager.googleapis.com
 read -s CLAVE && printf '%s' "$CLAVE" | gcloud secrets create clave-equipo --data-file=- && unset CLAVE
+
+# Create and load the BigQuery dataset (re-run after `node db/build-init.mjs`; see db/README.md)
+gcloud services enable bigquery.googleapis.com
+bq --location=europe-southwest1 mk --dataset devoshop   # once; skip if it exists
+bq --location=europe-southwest1 query --use_legacy_sql=false < db/init.sql
 
 gcloud run deploy devoshop --source . --region europe-southwest1 \
   --allow-unauthenticated --set-secrets CLAVE_EQUIPO=clave-equipo:latest

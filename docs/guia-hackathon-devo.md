@@ -375,5 +375,6 @@ curl -sI TU_URL                                       # cabeceras de seguridad
 - **¿Y si el agente no termina a tiempo?** Solo cuenta un pedido que ya esté en el buzón: hay que enviarlo antes de enseñar la confirmación.
 - **¿Cambiar de tienda tras aprobar la evaluación general?** No, salvo un motivo de peso hablado con la organización.
 - **¿El gasto sale a cero?** El pedido no coincide con el catálogo (producto que no existe, precio distinto o más de 4.000 €). El portal lo explica en la columna «Detalle».
+- **¿Qué es Black Friday?** Una prueba de carga: visitantes a la vez en escalones de 25, 50, 100 y 200, solo portada y fichas, sin comprar. Es uno de los hitos y también entra en la evaluación general. **"Cuanto más aguantéis con menos recursos, más nota."**
 - **¿Textos para convencer al agente?** Sí, están permitidos. Atacar el sistema o a otros equipos, no.
 - **¿Dónde se ve la puntuación?** En el portal y en el marcador de la sala. Cada logro guarda su mejor resultado.
