@@ -29,7 +29,20 @@ export function renderHome() {
     title: 'DevoShop | Muebles y hogar con envío rápido',
     description: 'Tienda online de muebles y decoración. Compra como invitado, sin registro, en pocos pasos.',
     body: `<h1>Muebles y hogar para cada espacio</h1>
-<p>Compra como invitado, sin registro. Precios con IVA incluido.</p>`,
+<p>Compra como invitado, sin registro. Precios con IVA incluido.</p>
+<section class="assistant-panel" aria-labelledby="assistant-heading">
+  <h2 id="assistant-heading">Asistente de la tienda</h2>
+  <p>Pregunta sobre productos, precios, envíos, montaje, devoluciones, garantía o pago.</p>
+  <form id="assistant-form" class="assistant-form" action="/api/asistente" method="post">
+    <label for="assistant-input">Tu consulta</label>
+    <div class="assistant-row">
+      <input id="assistant-input" name="pregunta" type="text" required maxlength="500" placeholder="Ej.: ¿Cuánto cuesta el envío?">
+      <button id="assistant-submit" type="submit">Preguntar</button>
+    </div>
+  </form>
+  <div id="assistant-reply" class="assistant-reply" aria-live="polite" hidden></div>
+</section>
+<script src="/static/asistente.js" defer></script>`,
   });
 }
 

@@ -97,8 +97,33 @@ async function route(req, res) {
     if (typeof body?.pregunta !== 'string' || !body.pregunta.trim()) {
       return sendJson(res, 400, { error: 'Falta "pregunta"' });
     }
-    // Placeholder until the catalog and sales conditions are loaded.
-    return sendJson(res, 200, { respuesta: 'El asistente de DevoShop estará disponible en breve.' });
+    const assistantBase = process.env.ASISTENTE_URL?.trim();
+    if (!assistantBase) {
+      return sendJson(res, 200, { respuesta: 'El asistente de DevoShop estará disponible en breve.' });
+    }
+    const target = `${assistantBase.replace(/\/+$/, '')}/api/asistente`;
+    let upstream;
+    try {
+      upstream = await fetch(target, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pregunta: body.pregunta }),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (err) {
+      console.error('assistant upstream error:', err?.message ?? err);
+      return sendJson(res, 502, { error: 'No se pudo contactar con el asistente' });
+    }
+    if (!upstream.ok) {
+      console.error(`assistant upstream returned HTTP ${upstream.status}`);
+      return sendJson(res, 502, { error: 'El asistente no pudo responder en este momento' });
+    }
+    const data = await upstream.json().catch(() => null);
+    if (typeof data?.respuesta !== 'string') {
+      console.error('assistant upstream returned invalid JSON payload');
+      return sendJson(res, 502, { error: 'Respuesta no válida del asistente' });
+    }
+    return sendJson(res, 200, { respuesta: data.respuesta });
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') {

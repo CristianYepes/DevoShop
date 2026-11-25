@@ -128,3 +128,39 @@ test('HEAD and unknown methods are handled. KILLS: 500 on unexpected methods', a
   const res = await get('/', { method: 'DELETE' });
   assert.equal(res.status, 405);
 });
+
+test('POST /api/asistente proxies to ASISTENTE_URL when configured. KILLS: assistant stuck on placeholder', async () => {
+  const { createServer } = await import('node:http');
+  const mockGo = createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/api/asistente') {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        const parsed = JSON.parse(body);
+        res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ respuesta: `Respuesta Go: ${parsed.pregunta}` }));
+      });
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise((resolve) => mockGo.listen(0, '127.0.0.1', resolve));
+  const prev = process.env.ASISTENTE_URL;
+  process.env.ASISTENTE_URL = `http://127.0.0.1:${mockGo.address().port}`;
+  try {
+    const res = await get('/api/asistente', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pregunta: '¿Cuánto cuesta el envío?' }),
+    });
+    assert.equal(res.status, 200);
+    assertSecurityHeaders(res, 'assistant proxy');
+    const data = await res.json();
+    assert.equal(data.respuesta, 'Respuesta Go: ¿Cuánto cuesta el envío?');
+  } finally {
+    if (prev === undefined) delete process.env.ASISTENTE_URL;
+    else process.env.ASISTENTE_URL = prev;
+    await new Promise((resolve) => mockGo.close(resolve));
+  }
+});
